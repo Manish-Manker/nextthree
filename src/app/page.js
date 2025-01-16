@@ -40,18 +40,18 @@ const ThreejsOLD = () => {
   const [azimuth, setAzimuth] = useState(0);
   const [polar, setPolar] = useState(Math.PI / 2);
 
+  const [rendersize, setrendersize] = useState();
 
   useEffect(() => {
     const currentMount = mountRef.current;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color("#FBFBFB");
+    scene.background = new THREE.Color("#F7F7F7");
     sceneRef.current = scene;
 
-    const camera = new THREE.PerspectiveCamera(75, 1, 0.01, 1000);
+    const camera = new THREE.PerspectiveCamera(75, currentMount.clientWidth / currentMount.clientHeight, 0.01, 1000);
     camera.position.set(0, 0.2, 2);
     cameraRef.current = camera;
-    cameraRef.current.fov = 200;
 
     const renderer = new THREE.WebGLRenderer({
       alpha: true,
@@ -59,37 +59,29 @@ const ThreejsOLD = () => {
       antialias: true,
       powerPreference: "high-performance",
     });
-    renderer.setSize(924, 924);
+    renderer.setSize(currentMount.clientWidth, currentMount.clientHeight);
     renderer.setPixelRatio(window.devicePixelRatio > 1 ? 2 : 1);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFShadowMap;
     currentMount.appendChild(renderer.domElement);
+    setrendersize({ width: currentMount.clientWidth, height: currentMount.clientHeight })
     rendererRef.current = renderer;
 
     const ambientLight = new THREE.AmbientLight(0x404040, 40);
     scene.add(ambientLight);
 
-    // const loaderB = new THREE.TextureLoader();
-    // scene.background = loaderB.load("/1216430-nature.jpg");
-    // scene.background.encoding = THREE.SRGBColorSpace;
+    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+    pmremGenerator.compileEquirectangularShader();
 
-    BackimgRef.current = new RGBELoader().load(
-      "blur white shade.hdr",
-      function (texture) {
-        texture.mapping = THREE.EquirectangularReflectionMapping;
-        scene.background = texture;
-        scene.enviroment = texture;
+    new RGBELoader().load('cannon_4k.hdr', (texture) => {
+      const envMap = pmremGenerator.fromEquirectangular(texture).texture;
+      scene.environment = envMap;
 
-        RectAreaLightUniformsLib.init();
-      }
-    );
-
-    const rectLight1 = new THREE.RectAreaLight(0xffffff, 0.7, 5, 5);
-    rectLight1.position.set(0, 1, 6);
-    rectLight1.lookAt(0, 0, 0);
-    scene.add(rectLight1);
-
+      texture.dispose();
+      pmremGenerator.dispose();
+    })
+    
     const Dlight = new THREE.DirectionalLight(0xffffff, 0);
     Dlight.position.set(lightPosition.x, lightPosition.y, lightPosition.z);
     Dlight.castShadow = true;
@@ -106,30 +98,30 @@ const ThreejsOLD = () => {
     scene.add(Dlight);
     DlightRef.current = Dlight;
 
-    const rectLight2 = new THREE.RectAreaLight(0xffffff, 1, 5, 5);
-    rectLight2.position.set(0, 1, -6);
-    rectLight2.lookAt(0, 0, 0);
-    scene.add(rectLight2);
+    // const rectLight2 = new THREE.RectAreaLight(0xffffff, 0.4, 5, 5);
+    // rectLight2.position.set(0, 1, -6);
+    // rectLight2.lookAt(0, 0, 0);
+    // // scene.add(rectLight2);
 
-    const rectLight3 = new THREE.RectAreaLight(0xffffff, 1, 5, 5);
-    rectLight3.position.set(-6, 1, 0);
-    rectLight3.lookAt(0, 0, 0);
-    scene.add(rectLight3);
+    // const rectLight3 = new THREE.RectAreaLight(0xffffff, 0.4, 5, 5);
+    // rectLight3.position.set(-6, 1, 0);
+    // rectLight3.lookAt(0, 0, 0);
+    // // scene.add(rectLight3);
 
-    const rectLight4 = new THREE.RectAreaLight(0xffffff, 1, 5, 5);
-    rectLight4.position.set(6, 1, 0);
-    rectLight4.lookAt(0, 0, 0);
-    scene.add(rectLight4);
+    // const rectLight4 = new THREE.RectAreaLight(0xffffff, 0.4, 5, 5);
+    // rectLight4.position.set(6, 1, 0);
+    // rectLight4.lookAt(0, 0, 0);
+    // // scene.add(rectLight4);
 
-    const rectLight = new THREE.RectAreaLight(0xffffff, 1, 5, 5);
-    rectLight.position.set(0, 4, 0);
-    rectLight.lookAt(0, 0, 0);
-    scene.add(rectLight);
+    // const rectLight = new THREE.RectAreaLight(0xffffff, 0.4, 5, 5);
+    // rectLight.position.set(0, 4, 0);
+    // rectLight.lookAt(0, 0, 0);
+    // // scene.add(rectLight);
 
-    const rectLightB = new THREE.RectAreaLight(0xffffff, 0.8, 5, 5);
-    rectLightB.position.set(0, -4, 0);
-    rectLightB.lookAt(0, 0, 0);
-    scene.add(rectLightB);
+    // const rectLightB = new THREE.RectAreaLight(0xffffff, 0.8, 5, 5);
+    // rectLightB.position.set(0, -4, 0);
+    // rectLightB.lookAt(0, 0, 0);
+    // // scene.add(rectLightB);
 
     const planeGeometry = new THREE.PlaneGeometry(500, 500);
     const planeMaterial = new THREE.ShadowMaterial({
@@ -169,10 +161,10 @@ const ThreejsOLD = () => {
           // Improve material quality
           if (child.material) {
             child.material.precision = "highp";
-            child.material.roughness = 0.5;
-            child.material.metalness = 0;
-            child.material.specular = 0;
-            child.material.shininess = 0;
+            child.material.roughness = 0.2;
+            // child.material.metalness = 0;
+            // child.material.specular = 0;
+            // child.material.shininess = 0;
             if (child.material.map) {
               child.material.map.anisotropy =
                 renderer.capabilities.getMaxAnisotropy();
@@ -234,11 +226,15 @@ const ThreejsOLD = () => {
     animate();
 
     const handleResize = () => {
-      camera.aspect = currentMount.clientWidth / currentMount.clientHeight;
+      const width = currentMount.clientWidth;
+      const height = currentMount.clientHeight;
+
+      camera.aspect = width / height;
       camera.updateProjectionMatrix();
-      renderer.setSize(currentMount.clientWidth, currentMount.clientHeight);
+      renderer.setSize(width, height);
     };
     window.addEventListener("resize", handleResize);
+    handleResize(); // Call once to set initial size
 
     return () => {
       if (currentMount) {
@@ -287,6 +283,8 @@ const ThreejsOLD = () => {
 
   useEffect(() => {
     OrbitControlRef.current.enabled = OrbitControls0;
+    console.log(sceneRef.current);
+
   }, [OrbitControls0]);
 
   useEffect(() => {
@@ -346,6 +344,8 @@ const ThreejsOLD = () => {
     const camera = cameraRef.current;
     const renderer = rendererRef.current;
 
+    const { width, height } = rendersize;
+
     const originalBackground = scene.background;
     scene.background = null;
 
@@ -359,7 +359,7 @@ const ThreejsOLD = () => {
       link.click();
     }
     scene.background = originalBackground;
-    renderer.setSize(924, 924);
+    renderer.setSize(width, height);
   };
 
   const handleLightPositionChange = (axis, value) => {
@@ -453,7 +453,7 @@ const ThreejsOLD = () => {
   const handleZoomChange = (event) => {
     const newZoom = parseInt(event.target.value);
     setZoom(newZoom);
-    
+
     // Convert zoom to radius (inverse relationship)
     const newRadius = 10 - (newZoom / 11);
     setRadius(newRadius);
@@ -466,7 +466,7 @@ const ThreejsOLD = () => {
     // Update camera position
     cameraRef.current.position.set(x, y, z);
     cameraRef.current.lookAt(0, 0, 0);
-};
+  };
 
   const handleAzimuthChange = (event) => {
     const angle = parseFloat(event.target.value) * Math.PI / 180;
@@ -495,8 +495,8 @@ const ThreejsOLD = () => {
 
   return (
     <>
-      <div style={{ display: "flex", alignContent: "space-between" }}>
-        <div style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
+      <div style={{ display: "flex", alignContent: "space-between", height: "90vh", width: "120vh", padding: "10px" }}>
+        <div style={{ padding: "10px", fontFamily: "Arial, sans-serif" }}>
           <label>
             Select Model :
             <input
@@ -633,12 +633,12 @@ const ThreejsOLD = () => {
               OrbitControls {OrbitControls0 ? "on" : "off"}{" "}
             </button>
           </div>
-          
+
           <button style={{ marginBottom: "10px" }} onClick={handleSavePosition}>
             Save Model Position
           </button>
 
-          <label style={{ margin: "10px" , display:"flex" }}>
+          <label style={{ margin: "10px", display: "flex" }}>
             Set Model Position
             <select onChange={handleChangePosition}>
               <option value="">Select Position</option>
@@ -694,10 +694,8 @@ const ThreejsOLD = () => {
           style={{
             width: "100%",
             height: "100%",
-            padding: "10px",
             boxSizing: "border-box",
-            border: "1px solid #ccc",
-            borderRadius: "4px",
+            border: "1px solid #ccc"
           }}
         />
       </div>
