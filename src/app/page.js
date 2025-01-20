@@ -46,7 +46,7 @@ const ThreejsOLD = () => {
     const currentMount = mountRef.current;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color("#F7F7F7");
+    scene.background = new THREE.Color("#E3E3E3");
     sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(75, currentMount.clientWidth / currentMount.clientHeight, 0.01, 1000);
@@ -68,7 +68,7 @@ const ThreejsOLD = () => {
     setrendersize({ width: currentMount.clientWidth, height: currentMount.clientHeight })
     rendererRef.current = renderer;
 
-    const ambientLight = new THREE.AmbientLight(0x404040, 40);
+    const ambientLight = new THREE.AmbientLight(0x404040, 45);
     scene.add(ambientLight);
 
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
@@ -162,7 +162,7 @@ const ThreejsOLD = () => {
           if (child.material) {
             child.material.precision = "highp";
             child.material.roughness = 0.2;
-            // child.material.metalness = 0;
+            child.material.metalness = 0.2;
             // child.material.specular = 0;
             // child.material.shininess = 0;
             if (child.material.map) {
@@ -195,7 +195,7 @@ const ThreejsOLD = () => {
     };
 
     if (!modelFile) {
-      loader.load("/BCAA Supplement Container Black.glb", (gltf) => {
+      loader.load("/Protein Supplement Long Jar Stack.glb", (gltf) => {
         const modelScene = loadModel(gltf);
         setDefaultModel(modelScene);
         setModel(modelScene);
