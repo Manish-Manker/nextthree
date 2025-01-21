@@ -519,18 +519,6 @@ const ThreejsOLD = () => {
             />
           </label>
 
-          <div style={{ marginBottom: "10px" }} >
-            <label>
-              Select Background Image:
-              <input
-                type="file"
-                accept=".jpg, .png"
-                onChange={handleBackgroundImageChange}
-                style={{ marginBottom: "10px" }}
-              />
-            </label>
-          </div>
-
           <div style={{ marginBottom: "10px" }}>
             <label>
               Select Mesh:
@@ -649,6 +637,18 @@ const ThreejsOLD = () => {
                 onChange={handleColorChange}
                 disabled={!selectedColorMesh}
                 style={{ verticalAlign: "middle" }}
+              />
+            </label>
+          </div>
+
+          <div style={{ marginBottom: "10px" }} >
+            <label>
+              Select Background Image:
+              <input
+                type="file"
+                accept=".jpg, .png"
+                onChange={handleBackgroundImageChange}
+                style={{ marginBottom: "10px" }}
               />
             </label>
           </div>
