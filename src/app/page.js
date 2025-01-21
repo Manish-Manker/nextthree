@@ -42,16 +42,38 @@ const ThreejsOLD = () => {
 
   const [rendersize, setrendersize] = useState();
 
+  const [OrthographicView, setOrthographicView] = useState(false);
+
   useEffect(() => {
     const currentMount = mountRef.current;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color("#E3E3E3");
+    scene.background = new THREE.Color("#ead1a0");
     sceneRef.current = scene;
 
-    const camera = new THREE.PerspectiveCamera(75, currentMount.clientWidth / currentMount.clientHeight, 0.01, 1000);
-    camera.position.set(0, 0.2, 2);
+    let camera;
+
+    if (OrthographicView == true) {
+      camera = new THREE.OrthographicCamera(
+        -currentMount.clientWidth / 2,
+        currentMount.clientWidth / 2,
+        currentMount.clientHeight / 2,
+        -currentMount.clientHeight / 2,
+        1,
+        1000
+      );
+      camera.position.set(0, 0, 10);
+      camera.zoom = 300
+      cameraRef.current = camera;
+      // setOrbitControls0(false);
+    } else if (OrthographicView == false) {
+      camera = new THREE.PerspectiveCamera(75, currentMount.clientWidth / currentMount.clientHeight, 0.01, 1000);
+      camera.position.set(0, 0.2, 2);
+      // setOrbitControls0(true);
+    }
+    
     cameraRef.current = camera;
+
 
     const renderer = new THREE.WebGLRenderer({
       alpha: true,
@@ -77,11 +99,10 @@ const ThreejsOLD = () => {
     new RGBELoader().load('cannon_4k.hdr', (texture) => {
       const envMap = pmremGenerator.fromEquirectangular(texture).texture;
       scene.environment = envMap;
-
       texture.dispose();
       pmremGenerator.dispose();
     })
-    
+
     const Dlight = new THREE.DirectionalLight(0xffffff, 0);
     Dlight.position.set(lightPosition.x, lightPosition.y, lightPosition.z);
     Dlight.castShadow = true;
@@ -97,31 +118,6 @@ const ThreejsOLD = () => {
 
     scene.add(Dlight);
     DlightRef.current = Dlight;
-
-    // const rectLight2 = new THREE.RectAreaLight(0xffffff, 0.4, 5, 5);
-    // rectLight2.position.set(0, 1, -6);
-    // rectLight2.lookAt(0, 0, 0);
-    // // scene.add(rectLight2);
-
-    // const rectLight3 = new THREE.RectAreaLight(0xffffff, 0.4, 5, 5);
-    // rectLight3.position.set(-6, 1, 0);
-    // rectLight3.lookAt(0, 0, 0);
-    // // scene.add(rectLight3);
-
-    // const rectLight4 = new THREE.RectAreaLight(0xffffff, 0.4, 5, 5);
-    // rectLight4.position.set(6, 1, 0);
-    // rectLight4.lookAt(0, 0, 0);
-    // // scene.add(rectLight4);
-
-    // const rectLight = new THREE.RectAreaLight(0xffffff, 0.4, 5, 5);
-    // rectLight.position.set(0, 4, 0);
-    // rectLight.lookAt(0, 0, 0);
-    // // scene.add(rectLight);
-
-    // const rectLightB = new THREE.RectAreaLight(0xffffff, 0.8, 5, 5);
-    // rectLightB.position.set(0, -4, 0);
-    // rectLightB.lookAt(0, 0, 0);
-    // // scene.add(rectLightB);
 
     const planeGeometry = new THREE.PlaneGeometry(500, 500);
     const planeMaterial = new THREE.ShadowMaterial({
@@ -244,7 +240,7 @@ const ThreejsOLD = () => {
       setDefaultModel(null);
       renderer.dispose();
     };
-  }, [modelFile]);
+  }, [modelFile, OrthographicView]);
 
   useEffect(() => {
     if (DlightRef.current) {
@@ -492,6 +488,21 @@ const ThreejsOLD = () => {
     cameraRef.current.lookAt(0, 0, 0);
   };
 
+  const handleBackgroundImageChange = (event) => {
+    const file = event.target.files[0]; 
+  
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const texture = new THREE.TextureLoader().load(e.target.result);
+        // texture.flipY = false;
+        texture.colorSpace = THREE.SRGBColorSpace;
+        sceneRef.current.background = texture;
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
 
   return (
     <>
@@ -503,9 +514,23 @@ const ThreejsOLD = () => {
               type="file"
               accept=".glb"
               onChange={handleFileChange}
+              disabled={OrthographicView}
               style={{ marginBottom: "10px" }}
             />
           </label>
+
+          <div style={{ marginBottom: "10px" }} >
+            <label>
+              Select Background Image:
+              <input
+                type="file"
+                accept=".jpg, .png"
+                onChange={handleBackgroundImageChange}
+                style={{ marginBottom: "10px" }}
+              />
+            </label>
+          </div>
+
           <div style={{ marginBottom: "10px" }}>
             <label>
               Select Mesh:
@@ -629,10 +654,17 @@ const ThreejsOLD = () => {
           </div>
 
           <div style={{ marginBottom: "10px" }}>
-            <button onClick={() => setOrbitControls0(!OrbitControls0)}>
+            <button  onClick={() => setOrbitControls0(!OrbitControls0)}>
               OrbitControls {OrbitControls0 ? "on" : "off"}{" "}
             </button>
           </div>
+
+          <div style={{ marginBottom: "10px" }}>
+            <button onClick={() => { setOrthographicView(!OrthographicView) }}>
+              Orthographic view {OrthographicView ? "on" : "off"}
+            </button>
+          </div>
+
 
           <button style={{ marginBottom: "10px" }} onClick={handleSavePosition}>
             Save Model Position
@@ -640,7 +672,7 @@ const ThreejsOLD = () => {
 
           <label style={{ margin: "10px", display: "flex" }}>
             Set Model Position
-            <select onChange={handleChangePosition}>
+            <select onChange={handleChangePosition} disabled={OrthographicView}>
               <option value="">Select Position</option>
               {saveCam.map((p, indx) => (
                 <option key={indx} value={indx}>{`Position ${indx + 1
@@ -656,6 +688,7 @@ const ThreejsOLD = () => {
               min="1"
               max="100"
               value={zoom}
+              disabled={OrthographicView}
               onChange={handleZoomChange}
             />
             {" " + zoom}
@@ -668,6 +701,7 @@ const ThreejsOLD = () => {
               min="0"
               max="360"
               value={azimuth * 180 / Math.PI}
+              disabled={OrthographicView}
               onChange={handleAzimuthChange}
             />
           </div>
@@ -678,9 +712,16 @@ const ThreejsOLD = () => {
               min="0"
               max="180"
               value={polar * 180 / Math.PI}
+              disabled={OrthographicView}
               onChange={handlePolarChange}
             />
           </div>
+          <button
+            onClick={() => console.log(cameraRef.current)}
+            style={{ marginBottom: "10px" }}
+          >
+            Get camera
+          </button>
 
           <button
             onClick={() => handleDownloadImage("png")}
