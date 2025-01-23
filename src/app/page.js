@@ -39,15 +39,16 @@ const ThreejsOLD = () => {
   const [radius, setRadius] = useState(2);
   const [azimuth, setAzimuth] = useState(0);
   const [polar, setPolar] = useState(Math.PI / 2);
-
   const [rendersize, setrendersize] = useState();
-
   const [OrthographicView, setOrthographicView] = useState(false);
+
+  const [bgImg,setbgImg] = useState(null);
 
   useEffect(() => {
     const currentMount = mountRef.current;
 
     const scene = new THREE.Scene();
+    handleBackgroundImageChange(bgImg) // set the bg-img on load
     scene.background = new THREE.Color("#ead1a0");
     sceneRef.current = scene;
 
@@ -96,7 +97,7 @@ const ThreejsOLD = () => {
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
     pmremGenerator.compileEquirectangularShader();
 
-    new RGBELoader().load('cannon_4k.hdr', (texture) => {
+    new RGBELoader().load('forest new 2.hdr', (texture) => {
       const envMap = pmremGenerator.fromEquirectangular(texture).texture;
       scene.environment = envMap;
       texture.dispose();
@@ -213,6 +214,7 @@ const ThreejsOLD = () => {
       };
       reader.readAsArrayBuffer(modelFile);
     }
+
 
     const animate = () => {
       controls.update();
@@ -489,14 +491,17 @@ const ThreejsOLD = () => {
   };
 
   const handleBackgroundImageChange = (event) => {
-    const file = event.target.files[0]; 
-  
+    const file = event?.target?.files[0]; 
+
+    setbgImg(event);
+
     if (file) {
       const reader = new FileReader();
       reader.onload = function (e) {
         const texture = new THREE.TextureLoader().load(e.target.result);
-        // texture.flipY = false;
+        
         texture.colorSpace = THREE.SRGBColorSpace;
+        
         sceneRef.current.background = texture;
       };
       reader.readAsDataURL(file);
