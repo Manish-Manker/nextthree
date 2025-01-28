@@ -25,15 +25,19 @@ const ThreejsOLD = () => {
   const [modelBounds, setModelBounds] = useState(null);
   const [selectedColorMesh, setSelectedColorMesh] = useState(null);
   const [colorChanged, setColorChanged] = useState(false);
+
   const [colorableMeshes, setColorableMeshes] = useState([]);
-  const [modelColor, setModelColor] = useState("#ffffff");
+
+  // const [modelColor, setModelColor] = useState("#ffffff");
 
   const [OrbitControls0, setOrbitControls0] = useState(true);
   const OrbitControlRef = useRef(null);
   const BackimgRef = useRef(null);
 
+  // save position and color
   const [saveCam, setsaveCam] = useState([]);
-
+  const [saveColour, setsaveColour] = useState([]);
+  //---------------------------------------
   const [zoom, setZoom] = useState(50);
 
   const [radius, setRadius] = useState(2);
@@ -42,14 +46,22 @@ const ThreejsOLD = () => {
   const [rendersize, setrendersize] = useState();
   const [OrthographicView, setOrthographicView] = useState(false);
 
-  const [bgImg,setbgImg] = useState(null);
+  const [bgImg, setbgImg] = useState(null);
+
+  const modelRef = useRef(null);
+  const [modelMatenees, setmodelMatenees] = useState(0.02);
+  const [modelRoughness, setmodelRoughness] = useState(0.02);
+  const[ modelTransparency,setModelTransparency] = useState(1);
+  const [modelOpacity, setModelOpacity] = useState(1.0);
+
+  
 
   useEffect(() => {
     const currentMount = mountRef.current;
 
     const scene = new THREE.Scene();
     handleBackgroundImageChange(bgImg) // set the bg-img on load
-    scene.background = new THREE.Color("#ead1a0");
+    scene.background = new THREE.Color("#c0c0c0");
     sceneRef.current = scene;
 
     let camera;
@@ -68,11 +80,11 @@ const ThreejsOLD = () => {
       cameraRef.current = camera;
       // setOrbitControls0(false);
     } else if (OrthographicView == false) {
-      camera = new THREE.PerspectiveCamera(75, currentMount.clientWidth / currentMount.clientHeight, 0.01, 1000);
-      camera.position.set(0, 0.2, 2);
+      camera = new THREE.PerspectiveCamera(20, currentMount.clientWidth / currentMount.clientHeight, 0.2, 1000);
+      camera.position.set(0, 0.2, 5.5);
       // setOrbitControls0(true);
     }
-    
+
     cameraRef.current = camera;
 
 
@@ -83,26 +95,33 @@ const ThreejsOLD = () => {
       powerPreference: "high-performance",
     });
     renderer.setSize(currentMount.clientWidth, currentMount.clientHeight);
-    renderer.setPixelRatio(window.devicePixelRatio > 1 ? 2 : 1);
+    renderer.setPixelRatio(window.devicePixelRatio);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.physicallyCorrectLights = true;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFShadowMap;
     currentMount.appendChild(renderer.domElement);
     setrendersize({ width: currentMount.clientWidth, height: currentMount.clientHeight })
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 3; // Adjust exposure
     rendererRef.current = renderer;
 
-    const ambientLight = new THREE.AmbientLight(0x404040, 45);
+    const ambientLight = new THREE.AmbientLight(0x404040, 1);
     scene.add(ambientLight);
 
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
     pmremGenerator.compileEquirectangularShader();
 
-    new RGBELoader().load('forest new 2.hdr', (texture) => {
+    new RGBELoader().load('piazza_bologni_1k.hdr', (texture) => {
       const envMap = pmremGenerator.fromEquirectangular(texture).texture;
+      envMap.encoding = THREE.RGBM16Encoding;
+      // scene.background = envMap;
       scene.environment = envMap;
       texture.dispose();
       pmremGenerator.dispose();
     })
+
+    
 
     const Dlight = new THREE.DirectionalLight(0xffffff, 0);
     Dlight.position.set(lightPosition.x, lightPosition.y, lightPosition.z);
@@ -138,13 +157,29 @@ const ThreejsOLD = () => {
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.dampingFactor = 0.08;
+    controls.dampingFactor = 0.1;
     controls.enabled = OrbitControls0;
-    controls.screenSpacePanning = false;
+    controls.screenSpacePanning = true;
+    controls.enablePan = true;
+    controls.maxDistance = 30;
+
+    // controls.maxPolarAngle = Math.PI / 2;       // lock the camera to not go below the ground lock y
+    // controls.minPolarAngle = Math.PI / 2.2;
+
+    // controls.minAzimuthAngle = -Math.PI * 1.1;
+    // controls.maxAzimuthAngle = Math.PI * 1.1;
+
+    // controls.maxAzimuthAngle  = Math.PI / 2;
     OrbitControlRef.current = controls;
 
     const loader = new GLTFLoader();
     const loadModel = (gltf) => {
+
+      if (gltf.cameras.length > 0) {
+        let cam = gltf.cameras[0];
+        camera = cam;
+      }
+
       gltf.scene.traverse((child) => {
         child.frustumCulled = false;
         if (child.isMesh) {
@@ -158,10 +193,11 @@ const ThreejsOLD = () => {
           // Improve material quality
           if (child.material) {
             child.material.precision = "highp";
-            child.material.roughness = 0.2;
-            child.material.metalness = 0.2;
-            // child.material.specular = 0;
-            // child.material.shininess = 0;
+            // child.material.roughness = 1;
+            child.material.metalness = 0.3;
+            // child.material.specular = new THREE.Color(0x000000);
+            // child.material.shininess = 100;
+            // child.material.reflectivity = 0;
             if (child.material.map) {
               child.material.map.anisotropy =
                 renderer.capabilities.getMaxAnisotropy();
@@ -175,6 +211,7 @@ const ThreejsOLD = () => {
       });
 
       scene.add(gltf.scene);
+      modelRef.current = gltf.scene;
 
       // Calculate model bounds
       const box = new THREE.Box3().setFromObject(gltf.scene);
@@ -192,7 +229,7 @@ const ThreejsOLD = () => {
     };
 
     if (!modelFile) {
-      loader.load("/Protein Supplement Long Jar Stack.glb", (gltf) => {
+      loader.load("/bottle.glb", (gltf) => {
         const modelScene = loadModel(gltf);
         setDefaultModel(modelScene);
         setModel(modelScene);
@@ -207,6 +244,8 @@ const ThreejsOLD = () => {
 
       const reader = new FileReader();
       reader.onload = (event) => {
+        console.log(event.target.result);
+
         loader.parse(event.target.result, "", (gltf) => {
           const modelScene = loadModel(gltf);
           setModel(modelScene);
@@ -269,7 +308,7 @@ const ThreejsOLD = () => {
   useEffect(() => {
     if (model) {
       setSelectedMesh(null); // Reset selected mesh when model changes
-      setModelColor("#ffffff");
+      // setModelColor("#ffffff");
     }
   }, [model]);
 
@@ -329,6 +368,8 @@ const ThreejsOLD = () => {
         texture.minFilter = THREE.LinearFilter;
         texture.anisotropy =
           rendererRef.current.capabilities.getMaxAnisotropy();
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.mapping = THREE.UVMapping;
         texture.colorSpace = THREE.SRGBColorSpace;
         selectedMesh.material.map = texture;
         selectedMesh.material.needsUpdate = true;
@@ -400,9 +441,9 @@ const ThreejsOLD = () => {
     planeRef.current.position.y = bounds.min.y - offset;
   };
 
+  //------------------------------------------new changes-------------------------------------------------
   const handleColorChange = (event) => {
     const newColor = event.target.value;
-    setModelColor(newColor);
 
     if (selectedColorMesh && selectedColorMesh.isMesh) {
       if (Array.isArray(selectedColorMesh.material)) {
@@ -418,10 +459,14 @@ const ThreejsOLD = () => {
       ) {
         selectedColorMesh.material.color.setStyle(newColor);
         selectedColorMesh.material.needsUpdate = true;
+
+        // save colour with mesh
+        setsaveColour([...saveColour, { selectedColorMesh, newColor }]);  // save the colour with mesh
       }
     }
   };
 
+  // save position of camera and light 
   const handleColorMeshSelect = (event) => {
     const meshName = event.target.value;
     const selected = colorableMeshes.find((mesh) => mesh.name === meshName);
@@ -434,9 +479,14 @@ const ThreejsOLD = () => {
       {
         position: cameraRef.current.position.clone(),
         rotation: cameraRef.current.rotation.clone(),
+        lightPosition: DlightRef.current.position.clone(),
       },
     ]);
+
   };
+
+
+  //------------------------------------------new changes-------------------------------------------------
 
   // camera controllers 
   const handleChangePosition = (event) => {
@@ -445,6 +495,8 @@ const ThreejsOLD = () => {
       const selectedPosition = saveCam[selectedIndex];
       cameraRef.current.position.copy(selectedPosition.position);
       cameraRef.current.rotation.copy(selectedPosition.rotation);
+      DlightRef.current.position.copy(selectedPosition.lightPosition);
+
     }
   };
 
@@ -491,7 +543,7 @@ const ThreejsOLD = () => {
   };
 
   const handleBackgroundImageChange = (event) => {
-    const file = event?.target?.files[0]; 
+    const file = event?.target?.files[0];
 
     setbgImg(event);
 
@@ -499,9 +551,9 @@ const ThreejsOLD = () => {
       const reader = new FileReader();
       reader.onload = function (e) {
         const texture = new THREE.TextureLoader().load(e.target.result);
-        
+
         texture.colorSpace = THREE.SRGBColorSpace;
-        
+
         sceneRef.current.background = texture;
       };
       reader.readAsDataURL(file);
@@ -509,9 +561,118 @@ const ThreejsOLD = () => {
   };
 
 
+  const handelHDR = (event) => {
+    const file = event?.target?.files[0];
+
+    if (file) {
+      const url = URL.createObjectURL(file);
+      const pmremGenerator = new THREE.PMREMGenerator(rendererRef.current);
+      pmremGenerator.compileEquirectangularShader();
+  
+      const loader = new RGBELoader();
+      loader.load(url, (texture) => {
+        texture.mapping = THREE.EquirectangularReflectionMapping; 
+        sceneRef.current.environment = null;
+        const envMap = pmremGenerator.fromEquirectangular(texture).texture;
+        sceneRef.current.environment = envMap;
+        pmremGenerator.dispose();
+      });
+    }
+
+  };
+
+
+  const handelMetalnessChange = (event) => {
+
+    let model = modelRef.current;
+    let value = parseFloat(event.target.value);
+    let mesh = selectedColorMesh;
+    setmodelMatenees(value);
+
+    if (model && mesh) {
+      mesh.traverse((child) => {
+        if (child.isMesh) {
+          if (Array.isArray(child.material)) {
+            child.material.forEach((mat) => {
+              mat.metalness = value;
+            });
+          } else {
+            child.material.metalness = value;
+          }
+        }
+      });
+    }
+  }
+
+  const handelRoughnessChange = (event) => { 
+
+    let model = modelRef.current;
+    let value = parseFloat(event.target.value);
+    let mesh = selectedColorMesh;
+    setmodelRoughness(value);
+
+    if (model && mesh) {
+      mesh.traverse((child) => {
+        if (child.isMesh) {
+          if (Array.isArray(child.material)) {
+            child.material.forEach((mat) => {
+              mat.roughness = value;
+            });
+          } else {
+            child.material.roughness = value;
+          }
+        }
+      })      
+    }
+  }
+
+  const handleTransparencyChange = (event) => {
+    let model = modelRef.current;
+    let value = parseFloat(event.target.value);
+    let mesh = selectedColorMesh;
+    setModelTransparency(value);  // If you want to track the transparency value
+    
+    if (model && mesh) {
+      mesh.traverse((child) => {
+        if (child.isMesh) {
+          if (Array.isArray(child.material)) {
+            child.material.forEach((mat) => {
+              mat.transparent = value > 0;  // Enable transparency if the value is greater than 0
+              mat.opacity = value;
+            });
+          } else {
+            child.material.transparent = value > 0;
+            child.material.opacity = value;
+          }
+        }
+      });
+    }
+  };
+
+  // const handleOpacityChange = (event) => {
+  //   let model = modelRef.current;
+  //   let value = parseFloat(event.target.value);
+  //   let mesh = selectedColorMesh;
+  //   setModelOpacity(value);  // If you want to track the opacity value
+    
+  //   if (model && mesh) {
+  //     mesh.traverse((child) => {
+  //       if (child.isMesh) {
+  //         if (Array.isArray(child.material)) {
+  //           child.material.forEach((mat) => {
+  //             mat.opacity = value;
+  //           });
+  //         } else {
+  //           child.material.opacity = value;
+  //         }
+  //       }
+  //     });
+  //   }
+  // };
+
   return (
     <>
-      <div style={{ display: "flex", alignContent: "space-between", height: "90vh", width: "120vh", padding: "10px" }}>
+      <div style={{ display: "flex", alignContent: "space-between", height: "100vh", width: "140vh", padding: "10px" }}>
         <div style={{ padding: "10px", fontFamily: "Arial, sans-serif" }}>
           <label>
             Select Model :
@@ -571,7 +732,7 @@ const ThreejsOLD = () => {
               Light Y:
               <input
                 type="range"
-                min="-20"
+                min="0"
                 max="20"
                 step="0.5"
                 value={lightPosition.y}
@@ -623,7 +784,7 @@ const ThreejsOLD = () => {
 
           <div style={{ marginBottom: "10px" }}>
             <label>
-              Select Mesh to Color:
+              Select Mesh to edit:
               <select
                 onChange={handleColorMeshSelect}
                 style={{ marginLeft: "10px", marginRight: "10px" }}
@@ -638,13 +799,69 @@ const ThreejsOLD = () => {
               </select>
               <input
                 type="color"
-                value={modelColor}
+                // value={modelColor}
                 onChange={handleColorChange}
                 disabled={!selectedColorMesh}
                 style={{ verticalAlign: "middle" }}
               />
             </label>
           </div>
+
+          <div style={{ margin: '10px' }}>
+            <label>Metalness</label>
+            <input
+              type="range"
+              min="0.01"
+              max="2"
+              step={0.01}
+              value={modelMatenees}
+              // disabled={OrthographicView}
+              onChange={handelMetalnessChange}
+            />
+            {" " + modelMatenees}
+          </div>
+
+          <div style={{ margin: '10px' }}>
+            <label>Roughness</label>
+            <input
+              type="range"
+              min="0.01"
+              max="1"
+              step={0.01}
+              value={modelRoughness}
+              // disabled={OrthographicView}
+              onChange={handelRoughnessChange}
+            />
+            {" " + modelRoughness}
+          </div>
+
+          <div style={{ margin: '10px' }}>
+            <label> Transparency </label>
+            <input
+              type="range"
+              min="0.01"
+              max="1.0"
+              step={0.01}
+              value={modelTransparency}
+              // disabled={OrthographicView}
+              onChange={handleTransparencyChange}
+            />
+            {" " + modelTransparency}
+          </div>
+
+          {/* <div style={{ margin: '10px' }}>
+            <label> Opacity </label>
+            <input
+              type="range"
+              min="0"
+              max="1.0"
+              step={0.1}
+              value={modelOpacity}
+              // disabled={OrthographicView}
+              onChange={handleOpacityChange}
+            />
+            {" " + modelOpacity}
+          </div> */}
 
           <div style={{ marginBottom: "10px" }} >
             <label>
@@ -658,8 +875,20 @@ const ThreejsOLD = () => {
             </label>
           </div>
 
+          <div style={{ marginBottom: "10px" }} >
+            <label>
+              Select hdr Image:
+              <input
+                type="file"
+                accept=".hdr"
+                onChange={handelHDR}
+                style={{ marginBottom: "10px" }}
+              />
+            </label>
+          </div>
+
           <div style={{ marginBottom: "10px" }}>
-            <button  onClick={() => setOrbitControls0(!OrbitControls0)}>
+            <button onClick={() => setOrbitControls0(!OrbitControls0)}>
               OrbitControls {OrbitControls0 ? "on" : "off"}{" "}
             </button>
           </div>
@@ -721,6 +950,8 @@ const ThreejsOLD = () => {
               onChange={handlePolarChange}
             />
           </div>
+
+
           <button
             onClick={() => console.log(cameraRef.current)}
             style={{ marginBottom: "10px" }}
