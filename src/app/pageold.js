@@ -13,7 +13,6 @@ import { BloomEffect } from 'postprocessing';
 
 import { FlyControls } from 'three/addons/controls/FlyControls.js';
 
-import { RectAreaLightHelper } from "three/examples/jsm/helpers/RectAreaLightHelper";
 
 const ThreejsOLD = () => {
   const mountRef = useRef(null);
@@ -59,8 +58,8 @@ const ThreejsOLD = () => {
   const [bgImg, setbgImg] = useState(null);
 
   const modelRef = useRef(null);
-  const [modelMatenees, setmodelMatenees] = useState(0);
-  const [modelRoughness, setmodelRoughness] = useState(0);
+  const [modelMatenees, setmodelMatenees] = useState(0.02);
+  const [modelRoughness, setmodelRoughness] = useState(0.02);
   const [modelTransmission, setModelTransmission] = useState(1);
   const [modelOpacity, setModelOpacity] = useState(1.0);
 
@@ -90,7 +89,7 @@ const ThreejsOLD = () => {
       cameraRef.current = camera;
       // setOrbitControls0(false);
     } else if (OrthographicView == false) {
-      camera = new THREE.PerspectiveCamera(20, currentMount.clientWidth / currentMount.clientHeight, 0.1, 1000);
+      camera = new THREE.PerspectiveCamera(20, currentMount.clientWidth / currentMount.clientHeight, 0.2, 1000);
       camera.position.set(0, 0, 5.5);
       // setOrbitControls0(true);
     }
@@ -108,91 +107,36 @@ const ThreejsOLD = () => {
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.physicallyCorrectLights = true;
     renderer.shadowMap.enabled = true;
-    renderer.gammaOutput = false; //--
-    renderer.gammaFactor = 1.0;  //--
-    renderer.outputEncoding = THREE.sRGBEncoding; //--
+    renderer.gammaFactor = 2;
 
     renderer.shadowMap.type = THREE.VSMShadowMap;
 
     currentMount.appendChild(renderer.domElement);
     setrendersize({ width: currentMount.clientWidth, height: currentMount.clientHeight })
-    renderer.preserveDrawingBuffer = true;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 2; // Adjust exposure
+    // renderer.preserveDrawingBuffer = true;
     rendererRef.current = renderer;
-    renderer.toneMapping = THREE.NoToneMapping; // Adjust exposure //--
 
-    const ambientLight = new THREE.AmbientLight(0x404040, 1);
+    const ambientLight = new THREE.AmbientLight(0x404040, 3);
     scene.add(ambientLight);
 
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1); // Adjust intensity and colors as needed
-    hemiLight.position.set(0, 20, 0);
-    scene.add(hemiLight);
+
 
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
     pmremGenerator.compileEquirectangularShader();
 
-    new RGBELoader().load('env.hdr', (texture) => {
+    new RGBELoader().load('kloppenheim_05_1k.hdr', (texture) => {
       const envMap = pmremGenerator.fromEquirectangular(texture).texture;
-      // envMap.encoding = THREE.RGBM16Encoding;
-      envMap.encoding = THREE.sRGBEncoding
+      envMap.encoding = THREE.RGBM16Encoding;
       // scene.background = envMap;
       scene.environment = envMap;
       texture.dispose();
       pmremGenerator.dispose();
     })
 
-    // const light1 = new THREE.PointLight("#ffffff", 20, 1000);
-    // light1.position.set(0, 5, 0);
-    // scene.add(light1);
 
-    // const light2 = new THREE.PointLight("#ffffff", 80, 1000);
-    // light2.position.set(3.5, 0, 6.5);
-    // scene.add(light2);
-
-    // const light3 = new THREE.PointLight("#ffffff", 80, 1000);
-    // light3.position.set(3.5, 0, -6.5);
-    // scene.add(light3);
-
-    // const light4 = new THREE.PointLight("#ffffff", 80, 1000);
-    // light4.position.set(-3.5, 0, -6.5);
-    // scene.add(light4);
-
-    // const rectLight = new THREE.RectAreaLight(0xffffff, 0.5, 8, 10);
-    // rectLight.position.set(-3.5, 0, 0.1);
-    // rectLight.lookAt(0, 0, 0);
-    // scene.add(rectLight)
-
-    // // const rectLightHelper = new RectAreaLightHelper(rectLight);
-    // // rectLight.add(rectLightHelper);
-
-
-
-    // const rectLight1 = new THREE.RectAreaLight(0xffffff, 0.5, 8, 10);
-    // rectLight1.position.set(3.5, 0, 3.5);
-    // rectLight1.lookAt(0, 0, 0);
-    // scene.add(rectLight1)
-
-    // // const rectLightHelper1 = new RectAreaLightHelper(rectLight1);
-    // // rectLight1.add(rectLightHelper1);
-
-
-    // const rectLight2 = new THREE.RectAreaLight(0xffffff, 0.5, 8, 10);
-    // rectLight2.position.set(3.5, 0, -3.5);
-    // rectLight2.lookAt(0, 0, 0);
-    // scene.add(rectLight2)
-
-    // // const rectLightHelper2 = new RectAreaLightHelper(rectLight2);
-    // // rectLight2.add(rectLightHelper2);
-
-
-    // const rectLight3 = new THREE.RectAreaLight(0xffffff, 0.5, 8, 10);
-    // rectLight3.position.set(-3.5, 0, -3.5);
-    // rectLight3.lookAt(0, 0, 0);
-    // scene.add(rectLight3)
-
-    // const rectLightHelper3 = new RectAreaLightHelper(rectLight3);
-    // rectLight3.add(rectLightHelper3);
-
-    const Dlight = new THREE.DirectionalLight(0xffffff, 0);
+    const Dlight = new THREE.DirectionalLight(0xffffff, 10);
     Dlight.position.set(lightPosition.x, lightPosition.y, lightPosition.z);
     Dlight.castShadow = true;
     Dlight.target.position.set(0, 0, 0);
@@ -232,7 +176,7 @@ const ThreejsOLD = () => {
     controls.screenSpacePanning = true;
     controls.enablePan = true;
     controls.maxDistance = 30;
-    controls.minDistance = 2;
+    controls.minDistance = 1.5;
 
     OrbitControlRef.current = controls;
 
@@ -259,25 +203,26 @@ const ThreejsOLD = () => {
       gltf.scene.traverse((child) => {
         const Pmaterial = new THREE.MeshPhysicalMaterial({
           // Ensure transparency and glass effect
-          transmission: 0,  // Fully transparent
+          transmission: 1,  // Fully transparent
           roughness: 0,     // Smooth surface for reflections
           metalness: 0,     // No metallic effect for plastic
           ior: 1.5,         // Glass-like refraction
           clearcoat: 0.5,     // Adds a shiny, glassy finish
-          clearcoatRoughness: 0.1, // Smooth clearcoat finish
-          thickness: 1,   // Adjust thickness if needed
+          clearcoatRoughness: 0, // Smooth clearcoat finish
+          thickness: 0.5,   // Adjust thickness if needed
           opacity: 1,       // Keep it fully opaque (even if transparent)
           transparent: true,
-          specularColor: '#FEFEFE', // Reflective highlight
-          emissiveIntensity: 5,  // No emissive effect for a realistic glass
+          specularColor: '#ffffff', // Reflective highlight
+          emissiveIntensity: 1,  // No emissive effect for a realistic glass
           aoMapIntensity: 1,
-          side: 0,
-          emissive: "#000000",
-          depthTest: true
+          side:0,
+          emissive:"#000000",
+          depthTest:true
         });
 
         if (child.material && child.material.color) {
           Pmaterial.color = child.material.color;
+          // Pmaterial.color = null;
         }
 
         child.material = Pmaterial;
@@ -291,19 +236,21 @@ const ThreejsOLD = () => {
           child.material.depthWrite = true;
           child.material.needsUpdate = true;
           child.material.shadowSide = null;
-          child.material.specularIntensity = 1;
+          child.material.specularIntensity= 1;
           child.material.clearcoatNormalScale = {
-            x: 1,
-            y: 1
+            x:1,
+            y:1
           }
         }
         if (child.isMesh) {
           child.castShadow = true;
           child.receiveShadow = true;
+
           child.material.flatShading = false;  // Smooth shading for plastic
           child.geometry.computeVertexNormals();
-          child.encoding = THREE.sRGBEncoding
         }
+
+
 
       });
 
@@ -325,7 +272,7 @@ const ThreejsOLD = () => {
     };
 
     if (!modelFile) {
-      loader.load("/Protein Supplement Jar  (3).glb", (gltf) => {
+      loader.load("/Supplement Jar Single.glb", (gltf) => {
         const modelScene = loadModel(gltf);
         setDefaultModel(modelScene);
         setModel(modelScene);
@@ -487,11 +434,11 @@ const ThreejsOLD = () => {
         const texture = new THREE.TextureLoader().load(e.target.result);
         texture.flipY = false;
         texture.minFilter = THREE.LinearFilter;
-        texture.anisotropy = rendererRef.current.capabilities.getMaxAnisotropy();
+        texture.anisotropy =
+          rendererRef.current.capabilities.getMaxAnisotropy();
         texture.colorSpace = THREE.SRGBColorSpace;
         texture.mapping = THREE.UVMapping;
-        // texture.colorSpace = THREE.SRGBColorSpace;
-        texture.encoding = THREE.sRGBEncoding
+        texture.colorSpace = THREE.SRGBColorSpace;
         selectedMesh.material.map = texture;
         selectedMesh.material.needsUpdate = true;
       };
@@ -588,7 +535,7 @@ const ThreejsOLD = () => {
     }
   };
 
-  // save position of camera and light
+  // save position of camera and light 
   const handleColorMeshSelect = (event) => {
     const meshName = event.target.value;
     // const selected = colorableMeshes.find((mesh) => mesh.name === meshName);
@@ -611,7 +558,7 @@ const ThreejsOLD = () => {
 
   //------------------------------------------new changes-------------------------------------------------
 
-  // camera controllers
+  // camera controllers 
   const handleChangePosition = (event) => {
     const selectedIndex = event.target.value;
     if (selectedIndex !== "") {
@@ -668,72 +615,6 @@ const ThreejsOLD = () => {
     cameraRef.current.lookAt(0, 0, 0);
   };
 
-// func calculate the size of the model in px 
-const logApparentDimensions = () => {
-  let model = modelRef.current;
-  let camera1 = cameraRef.current;
-  let renderer = rendererRef.current;
-
-  const box = new THREE.Box3().setFromObject(model);
-  
-  const min = box.min.clone();
-  const max = box.max.clone();
-
-  min.project(camera1);
-  max.project(camera1);
-
-  const width = Math.abs(max.x - min.x) * 0.5 * renderer.domElement.width;
-  const height = Math.abs(max.y - min.y) * 0.5 * renderer.domElement.height;
-
-  console.log('Apparent Width (in pixels):', width);
-  console.log('Apparent Height (in pixels):', height);
-};
-
-// const logApparentDimensions = () => {
-//   let model = modelRef.current;
-//   let camera = cameraRef.current;
-//   let renderer = rendererRef.current;
-//   let directionalLight = DlightRef.current;
-
-//   // Compute the bounding box of the model
-//   const box = new THREE.Box3().setFromObject(model);
-//   const shadowBox = new THREE.Box3();
-
-//   // Include the shadow area (assuming the shadow is projected onto the floor or a surface)
-//   // We estimate the shadow bounds by projecting the corners of the bounding box along the light's direction
-//   const lightDirection = directionalLight.position.clone().normalize();
-//   const modelMin = box.min.clone();
-//   const modelMax = box.max.clone();
-  
-//   // Project the bounding box corners in the direction of the light (i.e., estimating shadow projection)
-//   const shadowMin = modelMin.clone().projectOnPlane(lightDirection);
-//   const shadowMax = modelMax.clone().projectOnPlane(lightDirection);
-
-//   // Expand the shadow box to include the shadow bounds
-//   shadowBox.expandByPoint(shadowMin);
-//   shadowBox.expandByPoint(shadowMax);
-
-//   // Now, include the model's box and shadow box together
-//   box.expandByPoint(shadowBox.min);
-//   box.expandByPoint(shadowBox.max);
-
-//   // Project the combined box to screen space using the camera
-//   const min = box.min.clone();
-//   const max = box.max.clone();
-  
-//   // Project the box corners to NDC using the camera
-//   min.project(camera);
-//   max.project(camera);
-
-//   // Convert from NDC to screen space (adjust with renderer size)
-//   const width = Math.abs(max.x - min.x) * 0.5 * renderer.domElement.width;
-//   const height = Math.abs(max.y - min.y) * 0.5 * renderer.domElement.height;
-
-//   console.log('Apparent Width (in pixels):', width);
-//   console.log('Apparent Height (in pixels):', height);
-// };
-
-
 
 
   // useEffect(() => {
@@ -781,6 +662,7 @@ const logApparentDimensions = () => {
         pmremGenerator.dispose();
       });
     }
+
   };
 
 
@@ -924,7 +806,6 @@ const logApparentDimensions = () => {
   return (
     <>
       <div style={{ display: "flex", alignContent: "space-between", height: "100vh", width: "140vh", padding: "10px" }}>
-
         <div style={{ padding: "10px", fontFamily: "Arial, sans-serif" }}>
           <label>
             Select Model :
@@ -1243,10 +1124,10 @@ const logApparentDimensions = () => {
 
 
           <button
-            onClick={() => logApparentDimensions()}
+            onClick={() => console.log(modelRef.current)}
             style={{ marginBottom: "10px" }}
           >
-            Get model daimantions
+            Get camera positoin
           </button>
 
           <button
