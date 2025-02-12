@@ -64,6 +64,12 @@ const ThreejsOLD = () => {
   const [modelTransmission, setModelTransmission] = useState(1);
   const [modelOpacity, setModelOpacity] = useState(1.0);
 
+  const [isGlossy, setIsGlossy] = useState(true);
+  
+  const [lightOn, setLightOn] = useState(false);
+  const [lightColor, setLightColor] = useState("#ffffff");
+  const [lightIntensity, setLightIntensity] = useState(1);
+
 
 
   useEffect(() => {
@@ -90,7 +96,7 @@ const ThreejsOLD = () => {
       cameraRef.current = camera;
       // setOrbitControls0(false);
     } else if (OrthographicView == false) {
-      camera = new THREE.PerspectiveCamera(20, currentMount.clientWidth / currentMount.clientHeight, 0.1, 1000);
+      camera = new THREE.PerspectiveCamera(20, currentMount.clientWidth / currentMount.clientHeight, 0.01, 1000);
       camera.position.set(0, 0, 5.5);
       // setOrbitControls0(true);
     }
@@ -123,7 +129,7 @@ const ThreejsOLD = () => {
     const ambientLight = new THREE.AmbientLight(0x404040, 1);
     scene.add(ambientLight);
 
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1); // Adjust intensity and colors as needed
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 2); // Adjust intensity and colors as needed
     hemiLight.position.set(0, 20, 0);
     scene.add(hemiLight);
 
@@ -140,59 +146,9 @@ const ThreejsOLD = () => {
       pmremGenerator.dispose();
     })
 
-    // const light1 = new THREE.PointLight("#ffffff", 20, 1000);
-    // light1.position.set(0, 5, 0);
-    // scene.add(light1);
+    let Intensity = lightOn ? lightIntensity : 0;
 
-    // const light2 = new THREE.PointLight("#ffffff", 80, 1000);
-    // light2.position.set(3.5, 0, 6.5);
-    // scene.add(light2);
-
-    // const light3 = new THREE.PointLight("#ffffff", 80, 1000);
-    // light3.position.set(3.5, 0, -6.5);
-    // scene.add(light3);
-
-    // const light4 = new THREE.PointLight("#ffffff", 80, 1000);
-    // light4.position.set(-3.5, 0, -6.5);
-    // scene.add(light4);
-
-    // const rectLight = new THREE.RectAreaLight(0xffffff, 0.5, 8, 10);
-    // rectLight.position.set(-3.5, 0, 0.1);
-    // rectLight.lookAt(0, 0, 0);
-    // scene.add(rectLight)
-
-    // // const rectLightHelper = new RectAreaLightHelper(rectLight);
-    // // rectLight.add(rectLightHelper);
-
-
-
-    // const rectLight1 = new THREE.RectAreaLight(0xffffff, 0.5, 8, 10);
-    // rectLight1.position.set(3.5, 0, 3.5);
-    // rectLight1.lookAt(0, 0, 0);
-    // scene.add(rectLight1)
-
-    // // const rectLightHelper1 = new RectAreaLightHelper(rectLight1);
-    // // rectLight1.add(rectLightHelper1);
-
-
-    // const rectLight2 = new THREE.RectAreaLight(0xffffff, 0.5, 8, 10);
-    // rectLight2.position.set(3.5, 0, -3.5);
-    // rectLight2.lookAt(0, 0, 0);
-    // scene.add(rectLight2)
-
-    // // const rectLightHelper2 = new RectAreaLightHelper(rectLight2);
-    // // rectLight2.add(rectLightHelper2);
-
-
-    // const rectLight3 = new THREE.RectAreaLight(0xffffff, 0.5, 8, 10);
-    // rectLight3.position.set(-3.5, 0, -3.5);
-    // rectLight3.lookAt(0, 0, 0);
-    // scene.add(rectLight3)
-
-    // const rectLightHelper3 = new RectAreaLightHelper(rectLight3);
-    // rectLight3.add(rectLightHelper3);
-
-    const Dlight = new THREE.DirectionalLight(0xffffff, 0);
+    const Dlight = new THREE.DirectionalLight(lightColor, Intensity);
     Dlight.position.set(lightPosition.x, lightPosition.y, lightPosition.z);
     Dlight.castShadow = true;
     Dlight.target.position.set(0, 0, 0);
@@ -256,56 +212,91 @@ const ThreejsOLD = () => {
         camera = cam;
       }
 
-      gltf.scene.traverse((child) => {
-        const Pmaterial = new THREE.MeshPhysicalMaterial({
-          // Ensure transparency and glass effect
-          transmission: 0,  // Fully transparent
-          roughness: 0,     // Smooth surface for reflections
-          metalness: 0,     // No metallic effect for plastic
-          ior: 1.5,         // Glass-like refraction
-          clearcoat: 0.5,     // Adds a shiny, glassy finish
-          clearcoatRoughness: 0.1, // Smooth clearcoat finish
-          thickness: 1,   // Adjust thickness if needed
-          opacity: 1,       // Keep it fully opaque (even if transparent)
-          transparent: true,
-          specularColor: '#FEFEFE', // Reflective highlight
-          emissiveIntensity: 5,  // No emissive effect for a realistic glass
-          aoMapIntensity: 1,
-          side: 0,
-          emissive: "#000000",
-          depthTest: true
-        });
+      if (isGlossy == true) {
 
-        if (child.material && child.material.color) {
-          Pmaterial.color = child.material.color;
-        }
+        gltf.scene.traverse((child) => {
+          const Pmaterial = new THREE.MeshPhysicalMaterial({
+            // Ensure transparency and glass effect
+            transmission: 0,  // Fully transparent
+            roughness: 0,     // Smooth surface for reflections
+            metalness: 0,     // No metallic effect for plastic
+            ior: 1.5,         // Glass-like refraction
+            clearcoat: 0.4,     // Adds a shiny, glassy finish
+            clearcoatRoughness: 0.1, // Smooth clearcoat finish
+            thickness: 1,   // Adjust thickness if needed
+            opacity: 1,       // Keep it fully opaque (even if transparent)
+            transparent: true,
+            specularColor: '#FEFEFE', // Reflective highlight
+            emissiveIntensity: 0,  // No emissive effect for a realistic glass
+            aoMapIntensity: 1,
+            side: 0,
+            emissive: "#000000",
+            depthTest: true
+          });
 
-        child.material = Pmaterial;
-        child.frustumCulled = false;
-
-        if (child.material) {
-          // Set other attributes for a glassy effect
-          child.material.normalMapType = 0;  // Use no normal map if you want a smooth surface
-          child.material.sheen = 0;  // No sheen effect for plastic
-          child.material.depthFunc = 3;
-          child.material.depthWrite = true;
-          child.material.needsUpdate = true;
-          child.material.shadowSide = null;
-          child.material.specularIntensity = 1;
-          child.material.clearcoatNormalScale = {
-            x: 1,
-            y: 1
+          if (child.material && child.material.color) {
+            Pmaterial.color = child.material.color;
           }
-        }
-        if (child.isMesh) {
-          child.castShadow = true;
-          child.receiveShadow = true;
-          child.material.flatShading = false;  // Smooth shading for plastic
-          child.geometry.computeVertexNormals();
-          child.encoding = THREE.sRGBEncoding
-        }
 
-      });
+          child.material = Pmaterial;
+          child.frustumCulled = false;
+
+          if (child.material) {
+            // Set other attributes for a glassy effect
+            child.material.normalMapType = 0;  // Use no normal map if you want a smooth surface
+            child.material.sheen = 0;  // No sheen effect for plastic
+            child.material.depthFunc = 3;
+            child.material.depthWrite = true;
+            child.material.needsUpdate = true;
+            child.material.shadowSide = null;
+            child.material.specularIntensity = 1;
+            child.material.clearcoatNormalScale = {
+              x: 1,
+              y: 1
+            }
+          }
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+            child.material.flatShading = false;  // Smooth shading for plastic
+            child.geometry.computeVertexNormals();
+            child.encoding = THREE.sRGBEncoding
+          }
+
+        });
+      } else {
+        gltf.scene.traverse((child) => {
+          child.frustumCulled = false;
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+
+            child.material.flatShading = false;
+            child.material.needsUpdate = true;
+            child.geometry.computeVertexNormals();
+
+            // Improve material quality
+            if (child.material) {
+              child.material.precision = "highp";
+              child.encoding = THREE.sRGBEncoding
+              // child.material.roughness = 1;
+              // child.material.metalness = 0.3;
+              // child.material.specular = new THREE.Color(0x000000);
+              // child.material.shininess = 100;
+              // child.material.reflectivity = 0;
+              if (child.material.map) {
+                child.material.map.anisotropy =
+                  renderer.capabilities.getMaxAnisotropy();
+                child.material.map.minFilter = THREE.LinearFilter;
+                child.material.map.magFilter = THREE.LinearFilter;
+                child.material.map.generateMipmaps = true;
+                // child.material.map.colorSpace = THREE.SRGBColorSpace;
+              }
+            }
+          }
+        });
+      }
+
 
       scene.add(gltf.scene);
       modelRef.current = gltf.scene;
@@ -325,7 +316,7 @@ const ThreejsOLD = () => {
     };
 
     if (!modelFile) {
-      loader.load("/Protein Supplement Jar  (3).glb", (gltf) => {
+      loader.load("/Pill Bottle 3.glb", (gltf) => {
         const modelScene = loadModel(gltf);
         setDefaultModel(modelScene);
         setModel(modelScene);
@@ -398,7 +389,7 @@ const ThreejsOLD = () => {
       // renderer.forceContextLoss();
       renderer.dispose();
     };
-  }, [modelFile, OrthographicView]);
+  }, [modelFile, OrthographicView , isGlossy ]); //isGlossy  
 
   useEffect(() => {
     if (DlightRef.current) {
@@ -486,12 +477,17 @@ const ThreejsOLD = () => {
       reader.onload = (e) => {
         const texture = new THREE.TextureLoader().load(e.target.result);
         texture.flipY = false;
-        texture.minFilter = THREE.LinearFilter;
-        texture.anisotropy = rendererRef.current.capabilities.getMaxAnisotropy();
+
         texture.colorSpace = THREE.SRGBColorSpace;
+        texture.encoding = THREE.sRGBEncoding;  // Ensure correct color encoding
+        texture.minFilter = THREE.NearestMipmapLinearFilter;
+        texture.generateMipmaps = true;  // Enable mipmap generation
+        texture.magFilter = THREE.LinearFilter;  // Use linear filter for magnification
+        texture.wrapS = THREE.ClampToEdgeWrapping;
+        texture.wrapT = THREE.ClampToEdgeWrapping;
+        texture.anisotropy = rendererRef.current.capabilities.getMaxAnisotropy();
+
         texture.mapping = THREE.UVMapping;
-        // texture.colorSpace = THREE.SRGBColorSpace;
-        texture.encoding = THREE.sRGBEncoding
         selectedMesh.material.map = texture;
         selectedMesh.material.needsUpdate = true;
       };
@@ -668,101 +664,6 @@ const ThreejsOLD = () => {
     cameraRef.current.lookAt(0, 0, 0);
   };
 
-// func calculate the size of the model in px 
-const logApparentDimensions = () => {
-  let model = modelRef.current;
-  let camera1 = cameraRef.current;
-  let renderer = rendererRef.current;
-
-  const box = new THREE.Box3().setFromObject(model);
-  
-  const min = box.min.clone();
-  const max = box.max.clone();
-
-  min.project(camera1);
-  max.project(camera1);
-
-  const width = Math.abs(max.x - min.x) * 0.5 * renderer.domElement.width;
-  const height = Math.abs(max.y - min.y) * 0.5 * renderer.domElement.height;
-
-  console.log('Apparent Width (in pixels):', width);
-  console.log('Apparent Height (in pixels):', height);
-};
-
-// const logApparentDimensions = () => {
-//   let model = modelRef.current;
-//   let camera = cameraRef.current;
-//   let renderer = rendererRef.current;
-//   let directionalLight = DlightRef.current;
-
-//   // Compute the bounding box of the model
-//   const box = new THREE.Box3().setFromObject(model);
-//   const shadowBox = new THREE.Box3();
-
-//   // Include the shadow area (assuming the shadow is projected onto the floor or a surface)
-//   // We estimate the shadow bounds by projecting the corners of the bounding box along the light's direction
-//   const lightDirection = directionalLight.position.clone().normalize();
-//   const modelMin = box.min.clone();
-//   const modelMax = box.max.clone();
-  
-//   // Project the bounding box corners in the direction of the light (i.e., estimating shadow projection)
-//   const shadowMin = modelMin.clone().projectOnPlane(lightDirection);
-//   const shadowMax = modelMax.clone().projectOnPlane(lightDirection);
-
-//   // Expand the shadow box to include the shadow bounds
-//   shadowBox.expandByPoint(shadowMin);
-//   shadowBox.expandByPoint(shadowMax);
-
-//   // Now, include the model's box and shadow box together
-//   box.expandByPoint(shadowBox.min);
-//   box.expandByPoint(shadowBox.max);
-
-//   // Project the combined box to screen space using the camera
-//   const min = box.min.clone();
-//   const max = box.max.clone();
-  
-//   // Project the box corners to NDC using the camera
-//   min.project(camera);
-//   max.project(camera);
-
-//   // Convert from NDC to screen space (adjust with renderer size)
-//   const width = Math.abs(max.x - min.x) * 0.5 * renderer.domElement.width;
-//   const height = Math.abs(max.y - min.y) * 0.5 * renderer.domElement.height;
-
-//   console.log('Apparent Width (in pixels):', width);
-//   console.log('Apparent Height (in pixels):', height);
-// };
-
-
-
-
-  // useEffect(() => {
-  //   const canvas = mountRef.current;
-
-  //   const handleMouseWheel = (event) => {
-  //     event.preventDefault();
-
-  //     let z = parseFloat(cameraRef.current.position.z);
-  //     console.log(z);
-
-  //     let newZ = 100 - (100 / 30) * z;
-
-  //     if (event.deltaY > 0) {
-  //       setZoom((prevZoom) => Math.max(0, newZ)); // Decrease zoom
-  //     }
-  //     else {
-  //       setZoom((prevZoom) => Math.min(100, newZ)); // Increase zoom
-  //     }
-  //   }
-  //   if (canvas) {
-  //     canvas.addEventListener("wheel", handleMouseWheel, { passive: false });
-  //   }
-  //   return () => {
-  //     if (canvas) {
-  //       canvas.removeEventListener("wheel", handleMouseWheel);
-  //     }
-  //   };
-  // }, []);
 
   const handelHDR = (event) => {
     const file = event?.target?.files[0];
@@ -781,6 +682,7 @@ const logApparentDimensions = () => {
         pmremGenerator.dispose();
       });
     }
+
   };
 
 
@@ -920,6 +822,33 @@ const logApparentDimensions = () => {
     }
   };
 
+  // useEffect(() => {
+  //   if (lightOn) {
+  //     DlightRef.current.intensity = 1;
+  //   } else {
+  //     DlightRef.current.intensity = 0;
+  //   }
+  // }, [lightOn]);
+
+ const handelLightOn = (val) => {
+   if (val) {
+     DlightRef.current.intensity = lightIntensity ;
+    } else {
+      DlightRef.current.intensity = 0;
+    }
+    setLightOn(val);
+  };
+
+  const handelLightIntensity = (val) => {
+    DlightRef.current.intensity = val;
+    setLightIntensity(val);
+  }
+
+  const handelLightColour = (val) => {
+    const color = new THREE.Color(val);
+    DlightRef.current.color = color;
+    setLightColor(val);
+  };
 
   return (
     <>
@@ -936,6 +865,8 @@ const logApparentDimensions = () => {
               style={{ marginBottom: "10px" }}
             />
           </label>
+
+          <button style={{ marginBottom: "10px" }} onClick={() => setIsGlossy(!isGlossy)} >Matterial Change to {isGlossy ? "Matt" : "Glossy"}</button>
 
           <div style={{ marginBottom: "10px" }}>
             <label>
@@ -966,6 +897,40 @@ const logApparentDimensions = () => {
               style={{ marginLeft: "10px" }}
             />
           </div>
+          
+          <button style={{ marginBottom: "10px" }} onClick={() => handelLightOn(!lightOn) } >Light {lightOn ? "On" : "Off"}</button>
+
+          <div style={{ marginBottom: "10px" }}>
+            <label style={{ display: "block", marginBottom: "5px" }}>
+              Light Intensity:
+              <input
+                type="range"
+                min="0"
+                max="10"
+                step="0.1"
+                disabled={!lightOn}
+                value={lightIntensity}
+                onChange={(e) => handelLightIntensity(e.target.value)}
+                style={{ marginLeft: "10px", verticalAlign: "middle" }}
+              />
+              {" " + lightIntensity}
+            </label>
+          </div>
+
+          <div style={{ marginBottom: "10px" }}>
+            <label style={{ display: "block", marginBottom: "5px" }}>
+              Light Color:
+              <input
+                type="color"
+                disabled={!lightOn}
+                value={lightColor}
+                onChange={(e) => handelLightColour(e.target.value)}
+                style={{ marginLeft: "10px", verticalAlign: "middle" }}
+              />
+              {" " + lightColor}
+            </label>
+          </div>
+
           <div style={{ marginBottom: "10px" }}>
             <label style={{ display: "block", marginBottom: "5px" }}>
               Light X:
@@ -1243,10 +1208,10 @@ const logApparentDimensions = () => {
 
 
           <button
-            onClick={() => logApparentDimensions()}
+            onClick={() => console.log(modelRef.current)}
             style={{ marginBottom: "10px" }}
           >
-            Get model daimantions
+            Get camera positoin
           </button>
 
           <button
