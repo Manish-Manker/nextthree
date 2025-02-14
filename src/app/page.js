@@ -103,7 +103,7 @@ const ThreejsOLD = () => {
       cameraRef.current = camera;
       // setOrbitControls0(false);
     } else if (OrthographicView == false) {
-      camera = new THREE.PerspectiveCamera(20, currentMount.clientWidth / currentMount.clientHeight, 0.01, 10000);
+      camera = new THREE.PerspectiveCamera(20, currentMount.clientWidth / currentMount.clientHeight, 0.1, 1000);
       camera.position.set(0, 0, 5.5);
       // setOrbitControls0(true);
     }
