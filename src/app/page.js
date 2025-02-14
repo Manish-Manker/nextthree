@@ -65,7 +65,14 @@ const ThreejsOLD = () => {
   const [modelOpacity, setModelOpacity] = useState(1.0);
 
   const [isGlossy, setIsGlossy] = useState(true);
-  
+
+  // new chnages 
+
+  const [lightShadowOn, setLighShadowtOn] = useState(false);
+
+  const colourLightRef = useRef(null);
+  const [lightPosition2, setLightPosition2] = useState({ x: -4, y: 4, z: 5 });
+
   const [lightOn, setLightOn] = useState(false);
   const [lightColor, setLightColor] = useState("#ffffff");
   const [lightIntensity, setLightIntensity] = useState(1);
@@ -96,7 +103,7 @@ const ThreejsOLD = () => {
       cameraRef.current = camera;
       // setOrbitControls0(false);
     } else if (OrthographicView == false) {
-      camera = new THREE.PerspectiveCamera(20, currentMount.clientWidth / currentMount.clientHeight, 0.01, 1000);
+      camera = new THREE.PerspectiveCamera(20, currentMount.clientWidth / currentMount.clientHeight, 0.01, 10000);
       camera.position.set(0, 0, 5.5);
       // setOrbitControls0(true);
     }
@@ -146,11 +153,9 @@ const ThreejsOLD = () => {
       pmremGenerator.dispose();
     })
 
-    let Intensity = lightOn ? lightIntensity : 0;
-
-    const Dlight = new THREE.DirectionalLight(lightColor, Intensity);
+    const Dlight = new THREE.DirectionalLight("#ffffff", 0);
     Dlight.position.set(lightPosition.x, lightPosition.y, lightPosition.z);
-    Dlight.castShadow = true;
+    Dlight.castShadow = lightShadowOn;
     Dlight.target.position.set(0, 0, 0);
     scene.add(Dlight.target);
 
@@ -161,9 +166,19 @@ const ThreejsOLD = () => {
     Dlight.shadow.bias = -0.0001; // Reduce shadow artifacts
     Dlight.shadow.radius = shadowBlur;
 
-
     scene.add(Dlight);
     DlightRef.current = Dlight;
+
+    
+    // new chnages 
+    let Intensity = lightOn ? lightIntensity : 0;
+    const colourLight = new THREE.DirectionalLight(lightColor, Intensity);
+    colourLight.position.set(lightPosition2.x, lightPosition2.y, lightPosition2.z);
+    colourLight.target.position.set(0, 0, 0);
+    scene.add(colourLight.target);
+    scene.add(colourLight);
+    colourLightRef.current = colourLight;
+
 
     const planeGeometry = new THREE.PlaneGeometry(500, 500);
     const planeMaterial = new THREE.ShadowMaterial({
@@ -389,7 +404,7 @@ const ThreejsOLD = () => {
       // renderer.forceContextLoss();
       renderer.dispose();
     };
-  }, [modelFile, OrthographicView , isGlossy ]); //isGlossy  
+  }, [modelFile, OrthographicView, isGlossy]); //isGlossy  
 
   useEffect(() => {
     if (DlightRef.current) {
@@ -398,8 +413,20 @@ const ThreejsOLD = () => {
         lightPosition.y,
         lightPosition.z
       );
+      DlightRef.current.lookAt(0, 0, 0)
     }
   }, [lightPosition]);
+
+  useEffect(() => {
+    if (colourLightRef.current) {
+      colourLightRef.current.position.set(
+        lightPosition2.x,
+        lightPosition2.y,
+        lightPosition2.z
+      );
+      colourLightRef.current.lookAt(0, 0, 0)
+    }
+  }, [lightPosition2]);
 
   useEffect(() => {
     if (planeRef.current) {
@@ -529,6 +556,21 @@ const ThreejsOLD = () => {
           newPosition.z
         );
         DlightRef.current.target.position.set(0, 0, 0);
+      }
+      return newPosition;
+    });
+  };
+
+  const handleLightPositionChange2 = (axis, value) => {
+    setLightPosition2((prev) => {
+      const newPosition = { ...prev, [axis]: value };
+      if (colourLightRef.current) {
+        colourLightRef.current.position.set(
+          newPosition.x,
+          newPosition.y,
+          newPosition.z
+        );
+        colourLightRef.current.target.position.set(0, 0, 0);
       }
       return newPosition;
     });
@@ -822,31 +864,34 @@ const ThreejsOLD = () => {
     }
   };
 
-  // useEffect(() => {
-  //   if (lightOn) {
-  //     DlightRef.current.intensity = 1;
-  //   } else {
-  //     DlightRef.current.intensity = 0;
-  //   }
-  // }, [lightOn]);
-
- const handelLightOn = (val) => {
-   if (val) {
-     DlightRef.current.intensity = lightIntensity ;
+  const handellightShadowOn = (val) => {
+    if (val) {
+      DlightRef.current.castShadow = true;
     } else {
-      DlightRef.current.intensity = 0;
+      DlightRef.current.castShadow = false;
+    }
+    setLighShadowtOn(val);
+  };
+
+  const handelLightOn = (val) => {
+    if (val) {
+      colourLightRef.current.intensity = lightIntensity;
+    } else {
+      colourLightRef.current.intensity = 0;
     }
     setLightOn(val);
   };
 
+
+
   const handelLightIntensity = (val) => {
-    DlightRef.current.intensity = val;
+    colourLightRef.current.intensity = val;
     setLightIntensity(val);
   }
 
   const handelLightColour = (val) => {
     const color = new THREE.Color(val);
-    DlightRef.current.color = color;
+    colourLightRef.current.color = color;
     setLightColor(val);
   };
 
@@ -897,8 +942,8 @@ const ThreejsOLD = () => {
               style={{ marginLeft: "10px" }}
             />
           </div>
-          
-          <button style={{ marginBottom: "10px" }} onClick={() => handelLightOn(!lightOn) } >Light {lightOn ? "On" : "Off"}</button>
+
+          <button style={{ marginBottom: "10px" }} onClick={() => handelLightOn(!lightOn)} >Light {lightOn ? "On" : "Off"}</button>
 
           <div style={{ marginBottom: "10px" }}>
             <label style={{ display: "block", marginBottom: "5px" }}>
@@ -917,6 +962,8 @@ const ThreejsOLD = () => {
             </label>
           </div>
 
+         
+
           <div style={{ marginBottom: "10px" }}>
             <label style={{ display: "block", marginBottom: "5px" }}>
               Light Color:
@@ -933,12 +980,61 @@ const ThreejsOLD = () => {
 
           <div style={{ marginBottom: "10px" }}>
             <label style={{ display: "block", marginBottom: "5px" }}>
+             colour Light X:
+              <input
+                type="range"
+                min="-20"
+                max="20"
+                step="0.5"
+                value={lightPosition2.x}
+                disabled={!lightOn}
+                onChange={(e) => handleLightPositionChange2("x", e.target.value)}
+                style={{ marginLeft: "10px", verticalAlign: "middle" }}
+              />
+              {" " + lightPosition2.x}
+            </label>
+            <label style={{ display: "block", marginBottom: "5px" }}>
+             colour Light Y:
+              <input
+                type="range"
+                min="-10"
+                max="20"
+                step="0.5"
+                disabled={!lightOn}
+                value={lightPosition2.y}
+                onChange={(e) => handleLightPositionChange2("y", e.target.value)}
+                style={{ marginLeft: "10px", verticalAlign: "middle" }}
+              />
+              {" " + lightPosition2.y}
+            </label>
+            <label style={{ display: "block", marginBottom: "5px" }}>
+             colour Light Z:
+              <input
+                type="range"
+                min="-20"
+                max="20"
+                step="0.5"
+                disabled={!lightOn}
+                value={lightPosition2.z}
+                onChange={(e) => handleLightPositionChange2("z", e.target.value)}
+                style={{ marginLeft: "10px", verticalAlign: "middle" }}
+              />
+              {" " + lightPosition2.z}
+            </label>
+          </div>          
+
+          
+          <button style={{ margin: "10px" }} onClick={() => handellightShadowOn(!lightShadowOn)} >Light Shadow {lightShadowOn ? "On" : "Off"}</button>
+
+          <div style={{ marginBottom: "10px" }}>
+            <label style={{ display: "block", marginBottom: "5px" }}>
               Light X:
               <input
                 type="range"
                 min="-20"
                 max="20"
                 step="0.5"
+                disabled={!lightShadowOn}
                 value={lightPosition.x}
                 onChange={(e) => handleLightPositionChange("x", e.target.value)}
                 style={{ marginLeft: "10px", verticalAlign: "middle" }}
@@ -952,6 +1048,7 @@ const ThreejsOLD = () => {
                 min="-10"
                 max="20"
                 step="0.5"
+                disabled={!lightShadowOn}
                 value={lightPosition.y}
                 onChange={(e) => handleLightPositionChange("y", e.target.value)}
                 style={{ marginLeft: "10px", verticalAlign: "middle" }}
@@ -965,6 +1062,7 @@ const ThreejsOLD = () => {
                 min="-20"
                 max="20"
                 step="0.5"
+                disabled={!lightShadowOn}
                 value={lightPosition.z}
                 onChange={(e) => handleLightPositionChange("z", e.target.value)}
                 style={{ marginLeft: "10px", verticalAlign: "middle" }}
@@ -978,6 +1076,7 @@ const ThreejsOLD = () => {
                 min="0"
                 max="1"
                 step="0.01"
+                disabled={!lightShadowOn}
                 value={shadowOpacity}
                 onChange={(e) => handleShadowOpacityChange(e.target.value)}
                 style={{ marginLeft: "10px", verticalAlign: "middle" }}
@@ -991,6 +1090,7 @@ const ThreejsOLD = () => {
                 min="0"
                 max="10"
                 step="0.2"
+                disabled={!lightShadowOn}
                 value={shadowBlur}
                 onChange={(e) => handleShadowBlurChange(e.target.value)}
                 style={{ marginLeft: "10px", verticalAlign: "middle" }}
@@ -1075,7 +1175,7 @@ const ThreejsOLD = () => {
             <label>Roughness</label>
             <input
               type="range"
-              min="0.01"
+              min="0"
               max="1"
               step={0.01}
               value={modelRoughness}
