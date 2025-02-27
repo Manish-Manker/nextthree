@@ -69,7 +69,7 @@ const ThreejsOLD = () => {
     const currentMount = mountRef.current;
 
     const scene = new THREE.Scene();
-    handleBackgroundImageChange(bgImg) // set the bg-img on load
+    handleBackgroundImageChange(bgImg)
     scene.background = new THREE.Color("#c0c0c0");
     sceneRef.current = scene;
 
@@ -89,7 +89,7 @@ const ThreejsOLD = () => {
       cameraRef.current = camera;
       // setOrbitControls0(false);
     } else if (OrthographicView == false) {
-      camera = new THREE.PerspectiveCamera(20, currentMount.clientWidth / currentMount.clientHeight, 0.2, 1000);
+      camera = new THREE.PerspectiveCamera(20, currentMount.clientWidth / currentMount.clientHeight, 0.01, 100);
       camera.position.set(0, 0, 5.5);
       // setOrbitControls0(true);
     }
@@ -615,35 +615,6 @@ const ThreejsOLD = () => {
     cameraRef.current.lookAt(0, 0, 0);
   };
 
-
-
-  // useEffect(() => {
-  //   const canvas = mountRef.current;
-
-  //   const handleMouseWheel = (event) => {
-  //     event.preventDefault();
-
-  //     let z = parseFloat(cameraRef.current.position.z);
-  //     console.log(z);
-
-  //     let newZ = 100 - (100 / 30) * z;
-
-  //     if (event.deltaY > 0) {
-  //       setZoom((prevZoom) => Math.max(0, newZ)); // Decrease zoom
-  //     }
-  //     else {
-  //       setZoom((prevZoom) => Math.min(100, newZ)); // Increase zoom
-  //     }
-  //   }
-  //   if (canvas) {
-  //     canvas.addEventListener("wheel", handleMouseWheel, { passive: false });
-  //   }
-  //   return () => {
-  //     if (canvas) {
-  //       canvas.removeEventListener("wheel", handleMouseWheel);
-  //     }
-  //   };
-  // }, []);
 
   const handelHDR = (event) => {
     const file = event?.target?.files[0];
