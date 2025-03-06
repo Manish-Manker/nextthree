@@ -11,10 +11,6 @@ import { EffectComposer } from 'postprocessing';
 import { RenderPass } from 'postprocessing';
 import { BloomEffect } from 'postprocessing';
 
-import { FlyControls } from 'three/addons/controls/FlyControls.js';
-
-import { RectAreaLightHelper } from "three/examples/jsm/helpers/RectAreaLightHelper";
-
 const ThreejsOLD = () => {
   const mountRef = useRef(null);
   const sceneRef = useRef(null);
@@ -37,7 +33,7 @@ const ThreejsOLD = () => {
 
   // const [modelColor, setModelColor] = useState("#ffffff");
 
-  const [OrbitControls0, setOrbitControls0] = useState(true);
+  const [OrbitControls0, setOrbitControls0] = useState(false);
   const OrbitControlRef = useRef(null);
 
   const [FlyControls0, setFlyControls0] = useState(false);
@@ -52,6 +48,8 @@ const ThreejsOLD = () => {
   const [radius, setRadius] = useState(5.5);
   const [azimuth, setAzimuth] = useState(1.57);
   const [polar, setPolar] = useState(Math.PI / 2);
+  const [camrotation, setcamrotation] = useState(0);
+
 
   const [rendersize, setrendersize] = useState();
   const [OrthographicView, setOrthographicView] = useState(false);
@@ -198,7 +196,7 @@ const ThreejsOLD = () => {
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.dampingFactor = 0.1;
+    controls.dampingFactor = 0.5;
     controls.enabled = OrbitControls0;
     controls.screenSpacePanning = true;
     controls.enablePan = true;
@@ -207,25 +205,20 @@ const ThreejsOLD = () => {
 
     OrbitControlRef.current = controls;
 
-    let controlsf = new FlyControls(camera, renderer.domElement);
-    controlsf.movementSpeed = 10;
-    controlsf.rollSpeed = 0.001;
-    controlsf.autoForward = false;
-    controlsf.dragToLook = true;
-    controlsf.enabled = FlyControls0;
+    // let controlsf = new FlyControls(camera, renderer.domElement);
+    // controlsf.movementSpeed = 10;
+    // controlsf.rollSpeed = 0.001;
+    // controlsf.autoForward = false;
+    // controlsf.dragToLook = true;
+    // controlsf.enabled = FlyControls0;
 
-    FlyControlRef.current = controlsf;
+    // FlyControlRef.current = controlsf;
 
     const loader = new GLTFLoader();
     const dracoLoader = new DRACOLoader();
     dracoLoader.setDecoderPath("draco/");
     loader.setDRACOLoader(dracoLoader);
     const loadModel = (gltf) => {
-
-      if (gltf.cameras.length > 0) {
-        let cam = gltf.cameras[0];
-        camera = cam;
-      }
 
       if (isGlossy == true) {
 
@@ -312,7 +305,6 @@ const ThreejsOLD = () => {
         });
       }
 
-
       scene.add(gltf.scene);
       modelRef.current = gltf.scene;
 
@@ -335,7 +327,6 @@ const ThreejsOLD = () => {
         const modelScene = loadModel(gltf);
         setDefaultModel(modelScene);
         setModel(modelScene);
-
       });
     }
 
@@ -369,12 +360,14 @@ const ThreejsOLD = () => {
 
 
     const animate = () => {
-      controlsf.update(0.01);
-      controls.update();
       requestAnimationFrame(animate);
+      // console.log(OrbitControls0);      
+      if (OrbitControlRef.current && OrbitControls0) {
+        controls.update();
+      }
       renderer.render(scene, camera);
-      // composer.render();
     };
+    console.log("animate")
     animate();
 
     const handleResize = () => {
@@ -387,24 +380,26 @@ const ThreejsOLD = () => {
     };
     window.addEventListener("resize", handleResize);
     handleResize(); // Call once to set initial size
-
+    setOrbitControls0(true); // call once for the camera rotation 
     return () => {
       if (currentMount) {
         currentMount.removeChild(renderer.domElement);
+      }
+      if (OrbitControlRef.current && OrbitControls0) {
+        controls.update();
       }
       window.removeEventListener("resize", handleResize);
       setDefaultModel(null);
       scene.remove(modelRef.current);
       modelRef.current = null;
       // camera.dispose();
-      controls.dispose();
-      controlsf.dispose();
       composer.dispose();
       bloomEffect.dispose();
       // renderer.forceContextLoss();
       renderer.dispose();
     };
   }, [modelFile, OrthographicView, isGlossy]); //isGlossy  
+
 
   useEffect(() => {
     if (DlightRef.current) {
@@ -455,13 +450,11 @@ const ThreejsOLD = () => {
 
   useEffect(() => {
     OrbitControlRef.current.enabled = OrbitControls0;
-    console.log(sceneRef.current);
-
   }, [OrbitControls0]);
 
-  useEffect(() => {
-    FlyControlRef.current.enabled = FlyControls0;
-  }, [FlyControls0]);
+  // useEffect(() => {
+  //   FlyControlRef.current.enabled = FlyControls0;
+  // }, [FlyControls0]);
 
   useEffect(() => {
     if (model) {
@@ -661,50 +654,94 @@ const ThreejsOLD = () => {
     }
   };
 
-  const handleZoomChange = (event) => {
-    const newZoom = parseInt(event.target.value);
-    setZoom(newZoom);
+  // const handleZoomChange = (event) => {
+  //   const newZoom = parseInt(event.target.value);
+  //   setZoom(newZoom);
 
-    // Convert zoom to radius (inverse relationship)
-    // Adjust this formula based on the scale of the zoom effect
-    const newRadius = 10 - (newZoom / 11);
-    setRadius(newRadius);
+  //   // Convert zoom to radius (inverse relationship)
+  //   // Adjust this formula based on the scale of the zoom effect
+  //   const newRadius = 10 - (newZoom / 11);
+  //   setRadius(newRadius);
 
-    // Recalculate position using current angles and new radius
-    const x = newRadius * Math.sin(polar) * Math.cos(azimuth);
-    const z = newRadius * Math.sin(polar) * Math.sin(azimuth);
-    const y = newRadius * Math.cos(polar);
+  //   // Recalculate position using current angles and new radius
+  //   const x = newRadius * Math.sin(polar) * Math.cos(azimuth);
+  //   const z = newRadius * Math.sin(polar) * Math.sin(azimuth);
+  //   const y = newRadius * Math.cos(polar);
 
-    // Update camera position
-    cameraRef.current.position.set(x, y, z);
-    cameraRef.current.lookAt(0, 0, 0);
-  };
+  //   // Update camera position
+  //   cameraRef.current.position.set(x, y, z);
+  //   cameraRef.current.lookAt(0, 0, 0);
+  // };
 
 
 
-  const handleAzimuthChange = (event) => {
-    const angle = parseFloat(event.target.value) * Math.PI / 180;
-    setAzimuth(angle);
-    // Calculate new position on sphere
-    const x = radius * Math.sin(polar) * Math.cos(angle);
-    const z = radius * Math.sin(polar) * Math.sin(angle);
-    const y = radius * Math.cos(polar);
+  // const handleAzimuthChange = (event) => {
+  //   const angle = parseFloat(event.target.value) * Math.PI / 180;
+  //   setAzimuth(angle);
+  //   // Calculate new position on sphere
+  //   const x = radius * Math.sin(polar) * Math.cos(angle);
+  //   const z = radius * Math.sin(polar) * Math.sin(angle);
+  //   const y = radius * Math.cos(polar);
 
-    cameraRef.current.position.set(x, y, z);
-    cameraRef.current.lookAt(0, 0, 0);
-  };
+  //   cameraRef.current.position.set(x, y, z);
+  //   cameraRef.current.lookAt(0, 0, 0);
+  // };
 
-  const handlePolarChange = (event) => {
-    const angle = parseFloat(event.target.value) * Math.PI / 180;
-    setPolar(angle);
-    // Calculate new position on sphere
-    const x = radius * Math.sin(angle) * Math.cos(azimuth);
-    const z = radius * Math.sin(angle) * Math.sin(azimuth);
-    const y = radius * Math.cos(angle);
+  // const handlePolarChange = (event) => {
+  //   const angle = parseFloat(event.target.value) * Math.PI / 180;
+  //   setPolar(angle);
+  //   // Calculate new position on sphere
+  //   const x = radius * Math.sin(angle) * Math.cos(azimuth);
+  //   const z = radius * Math.sin(angle) * Math.sin(azimuth);
+  //   const y = radius * Math.cos(angle);
 
-    cameraRef.current.position.set(x, y, z);
-    cameraRef.current.lookAt(0, 0, 0);
-  };
+  //   cameraRef.current.position.set(x, y, z);
+  //   cameraRef.current.lookAt(0, 0, 0);
+  // };
+
+// ------------ new changes----------------
+
+
+const handleZoomChange = (event) => {
+  const newZoom = parseInt(event.target.value);
+  setZoom(newZoom);
+  const newRadius = 10 - (newZoom / 11);
+  setRadius(newRadius);
+  updateCameraPosition(newRadius, polar, azimuth, camrotation);
+};
+
+const handleAzimuthChange = (event) => {
+  const angle = parseFloat(event.target.value) * Math.PI / 180;
+  setAzimuth(angle);
+  updateCameraPosition(radius, polar, angle, camrotation);
+};
+
+const handlePolarChange = (event) => {
+  const angle = parseFloat(event.target.value) * Math.PI / 180;
+  setPolar(angle);
+  updateCameraPosition(radius, angle, azimuth, camrotation);
+};
+
+const handelCameraRotation = (event) => {
+  const val = parseFloat(event.target.value);
+  setcamrotation(val);
+  updateCameraPosition(radius, polar, azimuth, val);
+};
+
+const updateCameraPosition = (r, p, a, rotation) => { 
+
+  const x = r * Math.sin(p) * Math.cos(a);
+  const z = r * Math.sin(p) * Math.sin(a);
+  const y = r * Math.cos(p);
+
+  cameraRef.current.position.set(x, y, z);
+  cameraRef.current.lookAt(0, 0, 0);
+  cameraRef.current.rotateZ(rotation);
+
+  cameraRef.current.updateMatrix();
+  cameraRef.current.updateMatrixWorld();
+};
+// ------------ new changes----------------
 
 
   const handelHDR = (event) => {
@@ -881,8 +918,6 @@ const ThreejsOLD = () => {
     }
     setLightOn(val);
   };
-
-
 
   const handelLightIntensity = (val) => {
     colourLightRef.current.intensity = val;
@@ -1304,6 +1339,19 @@ const ThreejsOLD = () => {
               disabled={OrthographicView}
               onChange={handlePolarChange}
             />
+          </div>
+
+          <div style={{ margin: '10px' }}>
+            <label>camera Rotation</label>
+            <input
+              type="range"
+              min="0"
+              max="6.28"
+              step='0.01'
+              value={camrotation}
+              onChange={(e) => handelCameraRotation(e)}
+            />
+            {" " + ((camrotation /6.28)*100).toFixed(1) + '%'}
           </div>
 
 

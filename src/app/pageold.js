@@ -1,4 +1,4 @@
-// this is stabel and fast code
+// this is stabel and fast code 04-03-2025
 'use client'
 
 import React, { useEffect, useRef, useState } from "react";
@@ -10,9 +10,6 @@ import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
 import { EffectComposer } from 'postprocessing';
 import { RenderPass } from 'postprocessing';
 import { BloomEffect } from 'postprocessing';
-
-import { FlyControls } from 'three/addons/controls/FlyControls.js';
-
 
 const ThreejsOLD = () => {
   const mountRef = useRef(null);
@@ -36,7 +33,7 @@ const ThreejsOLD = () => {
 
   // const [modelColor, setModelColor] = useState("#ffffff");
 
-  const [OrbitControls0, setOrbitControls0] = useState(true);
+  const [OrbitControls0, setOrbitControls0] = useState(false);
   const OrbitControlRef = useRef(null);
 
   const [FlyControls0, setFlyControls0] = useState(false);
@@ -51,6 +48,8 @@ const ThreejsOLD = () => {
   const [radius, setRadius] = useState(5.5);
   const [azimuth, setAzimuth] = useState(1.57);
   const [polar, setPolar] = useState(Math.PI / 2);
+  const [camrotation, setcamrotation] = useState(0);
+
 
   const [rendersize, setrendersize] = useState();
   const [OrthographicView, setOrthographicView] = useState(false);
@@ -58,10 +57,23 @@ const ThreejsOLD = () => {
   const [bgImg, setbgImg] = useState(null);
 
   const modelRef = useRef(null);
-  const [modelMatenees, setmodelMatenees] = useState(0.02);
-  const [modelRoughness, setmodelRoughness] = useState(0.02);
+  const [modelMatenees, setmodelMatenees] = useState(0);
+  const [modelRoughness, setmodelRoughness] = useState(0);
   const [modelTransmission, setModelTransmission] = useState(1);
   const [modelOpacity, setModelOpacity] = useState(1.0);
+
+  const [isGlossy, setIsGlossy] = useState(true);
+
+  // new chnages 
+
+  const [lightShadowOn, setLighShadowtOn] = useState(false);
+
+  const colourLightRef = useRef(null);
+  const [lightPosition2, setLightPosition2] = useState({ x: -4, y: 4, z: 5 });
+
+  const [lightOn, setLightOn] = useState(false);
+  const [lightColor, setLightColor] = useState("#ffffff");
+  const [lightIntensity, setLightIntensity] = useState(1);
 
 
 
@@ -69,7 +81,7 @@ const ThreejsOLD = () => {
     const currentMount = mountRef.current;
 
     const scene = new THREE.Scene();
-    handleBackgroundImageChange(bgImg)
+    handleBackgroundImageChange(bgImg) // set the bg-img on load
     scene.background = new THREE.Color("#c0c0c0");
     sceneRef.current = scene;
 
@@ -89,7 +101,7 @@ const ThreejsOLD = () => {
       cameraRef.current = camera;
       // setOrbitControls0(false);
     } else if (OrthographicView == false) {
-      camera = new THREE.PerspectiveCamera(20, currentMount.clientWidth / currentMount.clientHeight, 0.01, 100);
+      camera = new THREE.PerspectiveCamera(20, currentMount.clientWidth / currentMount.clientHeight, 0.1, 1000);
       camera.position.set(0, 0, 5.5);
       // setOrbitControls0(true);
     }
@@ -107,38 +119,41 @@ const ThreejsOLD = () => {
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.physicallyCorrectLights = true;
     renderer.shadowMap.enabled = true;
-    renderer.gammaFactor = 2;
+    renderer.gammaOutput = false; //--
+    renderer.gammaFactor = 1.0;  //--
+    renderer.outputEncoding = THREE.sRGBEncoding; //--
 
     renderer.shadowMap.type = THREE.VSMShadowMap;
 
     currentMount.appendChild(renderer.domElement);
     setrendersize({ width: currentMount.clientWidth, height: currentMount.clientHeight })
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 2; // Adjust exposure
-    // renderer.preserveDrawingBuffer = true;
+    renderer.preserveDrawingBuffer = true;
     rendererRef.current = renderer;
+    renderer.toneMapping = THREE.NoToneMapping; // Adjust exposure //--
 
-    const ambientLight = new THREE.AmbientLight(0x404040, 3);
+    const ambientLight = new THREE.AmbientLight(0x404040, 1);
     scene.add(ambientLight);
 
-
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 2); // Adjust intensity and colors as needed
+    hemiLight.position.set(0, 20, 0);
+    scene.add(hemiLight);
 
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
     pmremGenerator.compileEquirectangularShader();
 
-    new RGBELoader().load('kloppenheim_05_1k.hdr', (texture) => {
+    new RGBELoader().load('env.hdr', (texture) => {
       const envMap = pmremGenerator.fromEquirectangular(texture).texture;
-      envMap.encoding = THREE.RGBM16Encoding;
+      // envMap.encoding = THREE.RGBM16Encoding;
+      envMap.encoding = THREE.sRGBEncoding
       // scene.background = envMap;
       scene.environment = envMap;
       texture.dispose();
       pmremGenerator.dispose();
     })
 
-
-    const Dlight = new THREE.DirectionalLight(0xffffff, 10);
+    const Dlight = new THREE.DirectionalLight("#ffffff", 0);
     Dlight.position.set(lightPosition.x, lightPosition.y, lightPosition.z);
-    Dlight.castShadow = true;
+    Dlight.castShadow = lightShadowOn;
     Dlight.target.position.set(0, 0, 0);
     scene.add(Dlight.target);
 
@@ -149,9 +164,19 @@ const ThreejsOLD = () => {
     Dlight.shadow.bias = -0.0001; // Reduce shadow artifacts
     Dlight.shadow.radius = shadowBlur;
 
-
     scene.add(Dlight);
     DlightRef.current = Dlight;
+
+    
+    // new chnages 
+    let Intensity = lightOn ? lightIntensity : 0;
+    const colourLight = new THREE.DirectionalLight(lightColor, Intensity);
+    colourLight.position.set(lightPosition2.x, lightPosition2.y, lightPosition2.z);
+    colourLight.target.position.set(0, 0, 0);
+    scene.add(colourLight.target);
+    scene.add(colourLight);
+    colourLightRef.current = colourLight;
+
 
     const planeGeometry = new THREE.PlaneGeometry(500, 500);
     const planeMaterial = new THREE.ShadowMaterial({
@@ -171,23 +196,23 @@ const ThreejsOLD = () => {
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.dampingFactor = 0.1;
+    controls.dampingFactor = 0.5;
     controls.enabled = OrbitControls0;
     controls.screenSpacePanning = true;
     controls.enablePan = true;
     controls.maxDistance = 30;
-    controls.minDistance = 1.5;
+    controls.minDistance = 2;
 
     OrbitControlRef.current = controls;
 
-    let controlsf = new FlyControls(camera, renderer.domElement);
-    controlsf.movementSpeed = 10;
-    controlsf.rollSpeed = 0.001;
-    controlsf.autoForward = false;
-    controlsf.dragToLook = true;
-    controlsf.enabled = FlyControls0;
+    // let controlsf = new FlyControls(camera, renderer.domElement);
+    // controlsf.movementSpeed = 10;
+    // controlsf.rollSpeed = 0.001;
+    // controlsf.autoForward = false;
+    // controlsf.dragToLook = true;
+    // controlsf.enabled = FlyControls0;
 
-    FlyControlRef.current = controlsf;
+    // FlyControlRef.current = controlsf;
 
     const loader = new GLTFLoader();
     const dracoLoader = new DRACOLoader();
@@ -200,59 +225,91 @@ const ThreejsOLD = () => {
         camera = cam;
       }
 
-      gltf.scene.traverse((child) => {
-        const Pmaterial = new THREE.MeshPhysicalMaterial({
-          // Ensure transparency and glass effect
-          transmission: 1,  // Fully transparent
-          roughness: 0,     // Smooth surface for reflections
-          metalness: 0,     // No metallic effect for plastic
-          ior: 1.5,         // Glass-like refraction
-          clearcoat: 0.5,     // Adds a shiny, glassy finish
-          clearcoatRoughness: 0, // Smooth clearcoat finish
-          thickness: 0.5,   // Adjust thickness if needed
-          opacity: 1,       // Keep it fully opaque (even if transparent)
-          transparent: true,
-          specularColor: '#ffffff', // Reflective highlight
-          emissiveIntensity: 1,  // No emissive effect for a realistic glass
-          aoMapIntensity: 1,
-          side:0,
-          emissive:"#000000",
-          depthTest:true
-        });
+      if (isGlossy == true) {
 
-        if (child.material && child.material.color) {
-          Pmaterial.color = child.material.color;
-          // Pmaterial.color = null;
-        }
+        gltf.scene.traverse((child) => {
+          const Pmaterial = new THREE.MeshPhysicalMaterial({
+            // Ensure transparency and glass effect
+            transmission: 0,  // Fully transparent
+            roughness: 0,     // Smooth surface for reflections
+            metalness: 0,     // No metallic effect for plastic
+            ior: 1.5,         // Glass-like refraction
+            clearcoat: 0.4,     // Adds a shiny, glassy finish
+            clearcoatRoughness: 0.1, // Smooth clearcoat finish
+            thickness: 1,   // Adjust thickness if needed
+            opacity: 1,       // Keep it fully opaque (even if transparent)
+            transparent: true,
+            specularColor: '#FEFEFE', // Reflective highlight
+            emissiveIntensity: 0,  // No emissive effect for a realistic glass
+            aoMapIntensity: 1,
+            side: 0,
+            emissive: "#000000",
+            depthTest: true
+          });
 
-        child.material = Pmaterial;
-        child.frustumCulled = false;
-
-        if (child.material) {
-          // Set other attributes for a glassy effect
-          child.material.normalMapType = 0;  // Use no normal map if you want a smooth surface
-          child.material.sheen = 0;  // No sheen effect for plastic
-          child.material.depthFunc = 3;
-          child.material.depthWrite = true;
-          child.material.needsUpdate = true;
-          child.material.shadowSide = null;
-          child.material.specularIntensity= 1;
-          child.material.clearcoatNormalScale = {
-            x:1,
-            y:1
+          if (child.material && child.material.color) {
+            Pmaterial.color = child.material.color;
           }
-        }
-        if (child.isMesh) {
-          child.castShadow = true;
-          child.receiveShadow = true;
 
-          child.material.flatShading = false;  // Smooth shading for plastic
-          child.geometry.computeVertexNormals();
-        }
+          child.material = Pmaterial;
+          child.frustumCulled = false;
 
+          if (child.material) {
+            // Set other attributes for a glassy effect
+            child.material.normalMapType = 0;  // Use no normal map if you want a smooth surface
+            child.material.sheen = 0;  // No sheen effect for plastic
+            child.material.depthFunc = 3;
+            child.material.depthWrite = true;
+            child.material.needsUpdate = true;
+            child.material.shadowSide = null;
+            child.material.specularIntensity = 1;
+            child.material.clearcoatNormalScale = {
+              x: 1,
+              y: 1
+            }
+          }
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+            child.material.flatShading = false;  // Smooth shading for plastic
+            child.geometry.computeVertexNormals();
+            child.encoding = THREE.sRGBEncoding
+          }
 
+        });
+      } else {
+        gltf.scene.traverse((child) => {
+          child.frustumCulled = false;
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
 
-      });
+            child.material.flatShading = false;
+            child.material.needsUpdate = true;
+            child.geometry.computeVertexNormals();
+
+            // Improve material quality
+            if (child.material) {
+              child.material.precision = "highp";
+              child.encoding = THREE.sRGBEncoding
+              // child.material.roughness = 1;
+              // child.material.metalness = 0.3;
+              // child.material.specular = new THREE.Color(0x000000);
+              // child.material.shininess = 100;
+              // child.material.reflectivity = 0;
+              if (child.material.map) {
+                child.material.map.anisotropy =
+                  renderer.capabilities.getMaxAnisotropy();
+                child.material.map.minFilter = THREE.LinearFilter;
+                child.material.map.magFilter = THREE.LinearFilter;
+                child.material.map.generateMipmaps = true;
+                // child.material.map.colorSpace = THREE.SRGBColorSpace;
+              }
+            }
+          }
+        });
+      }
+
 
       scene.add(gltf.scene);
       modelRef.current = gltf.scene;
@@ -272,11 +329,10 @@ const ThreejsOLD = () => {
     };
 
     if (!modelFile) {
-      loader.load("/Supplement Jar Single.glb", (gltf) => {
+      loader.load("/Pill Bottle 3.glb", (gltf) => {
         const modelScene = loadModel(gltf);
         setDefaultModel(modelScene);
         setModel(modelScene);
-
       });
     }
 
@@ -310,11 +366,11 @@ const ThreejsOLD = () => {
 
 
     const animate = () => {
-      controlsf.update(0.01);
-      controls.update();
       requestAnimationFrame(animate);
+      if (OrbitControlRef.current && OrbitControls0) {
+        controls.update();
+      }
       renderer.render(scene, camera);
-      // composer.render();
     };
     animate();
 
@@ -328,24 +384,26 @@ const ThreejsOLD = () => {
     };
     window.addEventListener("resize", handleResize);
     handleResize(); // Call once to set initial size
-
+    setOrbitControls0(true); // call once for the camera rotation 
     return () => {
       if (currentMount) {
         currentMount.removeChild(renderer.domElement);
+      }
+      if (OrbitControlRef.current && OrbitControls0) {
+        controls.update();
       }
       window.removeEventListener("resize", handleResize);
       setDefaultModel(null);
       scene.remove(modelRef.current);
       modelRef.current = null;
       // camera.dispose();
-      controls.dispose();
-      controlsf.dispose();
       composer.dispose();
       bloomEffect.dispose();
       // renderer.forceContextLoss();
       renderer.dispose();
     };
-  }, [modelFile, OrthographicView]);
+  }, [modelFile, OrthographicView, isGlossy]); //isGlossy  
+
 
   useEffect(() => {
     if (DlightRef.current) {
@@ -354,8 +412,20 @@ const ThreejsOLD = () => {
         lightPosition.y,
         lightPosition.z
       );
+      DlightRef.current.lookAt(0, 0, 0)
     }
   }, [lightPosition]);
+
+  useEffect(() => {
+    if (colourLightRef.current) {
+      colourLightRef.current.position.set(
+        lightPosition2.x,
+        lightPosition2.y,
+        lightPosition2.z
+      );
+      colourLightRef.current.lookAt(0, 0, 0)
+    }
+  }, [lightPosition2]);
 
   useEffect(() => {
     if (planeRef.current) {
@@ -384,13 +454,11 @@ const ThreejsOLD = () => {
 
   useEffect(() => {
     OrbitControlRef.current.enabled = OrbitControls0;
-    console.log(sceneRef.current);
-
   }, [OrbitControls0]);
 
-  useEffect(() => {
-    FlyControlRef.current.enabled = FlyControls0;
-  }, [FlyControls0]);
+  // useEffect(() => {
+  //   FlyControlRef.current.enabled = FlyControls0;
+  // }, [FlyControls0]);
 
   useEffect(() => {
     if (model) {
@@ -433,12 +501,17 @@ const ThreejsOLD = () => {
       reader.onload = (e) => {
         const texture = new THREE.TextureLoader().load(e.target.result);
         texture.flipY = false;
-        texture.minFilter = THREE.LinearFilter;
-        texture.anisotropy =
-          rendererRef.current.capabilities.getMaxAnisotropy();
+
         texture.colorSpace = THREE.SRGBColorSpace;
+        texture.encoding = THREE.sRGBEncoding;  // Ensure correct color encoding
+        texture.minFilter = THREE.NearestMipmapLinearFilter;
+        texture.generateMipmaps = true;  // Enable mipmap generation
+        texture.magFilter = THREE.LinearFilter;  // Use linear filter for magnification
+        texture.wrapS = THREE.ClampToEdgeWrapping;
+        texture.wrapT = THREE.ClampToEdgeWrapping;
+        texture.anisotropy = rendererRef.current.capabilities.getMaxAnisotropy();
+
         texture.mapping = THREE.UVMapping;
-        texture.colorSpace = THREE.SRGBColorSpace;
         selectedMesh.material.map = texture;
         selectedMesh.material.needsUpdate = true;
       };
@@ -480,6 +553,21 @@ const ThreejsOLD = () => {
           newPosition.z
         );
         DlightRef.current.target.position.set(0, 0, 0);
+      }
+      return newPosition;
+    });
+  };
+
+  const handleLightPositionChange2 = (axis, value) => {
+    setLightPosition2((prev) => {
+      const newPosition = { ...prev, [axis]: value };
+      if (colourLightRef.current) {
+        colourLightRef.current.position.set(
+          newPosition.x,
+          newPosition.y,
+          newPosition.z
+        );
+        colourLightRef.current.target.position.set(0, 0, 0);
       }
       return newPosition;
     });
@@ -535,7 +623,7 @@ const ThreejsOLD = () => {
     }
   };
 
-  // save position of camera and light 
+  // save position of camera and light
   const handleColorMeshSelect = (event) => {
     const meshName = event.target.value;
     // const selected = colorableMeshes.find((mesh) => mesh.name === meshName);
@@ -558,7 +646,7 @@ const ThreejsOLD = () => {
 
   //------------------------------------------new changes-------------------------------------------------
 
-  // camera controllers 
+  // camera controllers
   const handleChangePosition = (event) => {
     const selectedIndex = event.target.value;
     if (selectedIndex !== "") {
@@ -570,50 +658,94 @@ const ThreejsOLD = () => {
     }
   };
 
-  const handleZoomChange = (event) => {
-    const newZoom = parseInt(event.target.value);
-    setZoom(newZoom);
+  // const handleZoomChange = (event) => {
+  //   const newZoom = parseInt(event.target.value);
+  //   setZoom(newZoom);
 
-    // Convert zoom to radius (inverse relationship)
-    // Adjust this formula based on the scale of the zoom effect
-    const newRadius = 10 - (newZoom / 11);
-    setRadius(newRadius);
+  //   // Convert zoom to radius (inverse relationship)
+  //   // Adjust this formula based on the scale of the zoom effect
+  //   const newRadius = 10 - (newZoom / 11);
+  //   setRadius(newRadius);
 
-    // Recalculate position using current angles and new radius
-    const x = newRadius * Math.sin(polar) * Math.cos(azimuth);
-    const z = newRadius * Math.sin(polar) * Math.sin(azimuth);
-    const y = newRadius * Math.cos(polar);
+  //   // Recalculate position using current angles and new radius
+  //   const x = newRadius * Math.sin(polar) * Math.cos(azimuth);
+  //   const z = newRadius * Math.sin(polar) * Math.sin(azimuth);
+  //   const y = newRadius * Math.cos(polar);
 
-    // Update camera position
-    cameraRef.current.position.set(x, y, z);
-    cameraRef.current.lookAt(0, 0, 0);
-  };
+  //   // Update camera position
+  //   cameraRef.current.position.set(x, y, z);
+  //   cameraRef.current.lookAt(0, 0, 0);
+  // };
 
 
 
-  const handleAzimuthChange = (event) => {
-    const angle = parseFloat(event.target.value) * Math.PI / 180;
-    setAzimuth(angle);
-    // Calculate new position on sphere
-    const x = radius * Math.sin(polar) * Math.cos(angle);
-    const z = radius * Math.sin(polar) * Math.sin(angle);
-    const y = radius * Math.cos(polar);
+  // const handleAzimuthChange = (event) => {
+  //   const angle = parseFloat(event.target.value) * Math.PI / 180;
+  //   setAzimuth(angle);
+  //   // Calculate new position on sphere
+  //   const x = radius * Math.sin(polar) * Math.cos(angle);
+  //   const z = radius * Math.sin(polar) * Math.sin(angle);
+  //   const y = radius * Math.cos(polar);
 
-    cameraRef.current.position.set(x, y, z);
-    cameraRef.current.lookAt(0, 0, 0);
-  };
+  //   cameraRef.current.position.set(x, y, z);
+  //   cameraRef.current.lookAt(0, 0, 0);
+  // };
 
-  const handlePolarChange = (event) => {
-    const angle = parseFloat(event.target.value) * Math.PI / 180;
-    setPolar(angle);
-    // Calculate new position on sphere
-    const x = radius * Math.sin(angle) * Math.cos(azimuth);
-    const z = radius * Math.sin(angle) * Math.sin(azimuth);
-    const y = radius * Math.cos(angle);
+  // const handlePolarChange = (event) => {
+  //   const angle = parseFloat(event.target.value) * Math.PI / 180;
+  //   setPolar(angle);
+  //   // Calculate new position on sphere
+  //   const x = radius * Math.sin(angle) * Math.cos(azimuth);
+  //   const z = radius * Math.sin(angle) * Math.sin(azimuth);
+  //   const y = radius * Math.cos(angle);
 
-    cameraRef.current.position.set(x, y, z);
-    cameraRef.current.lookAt(0, 0, 0);
-  };
+  //   cameraRef.current.position.set(x, y, z);
+  //   cameraRef.current.lookAt(0, 0, 0);
+  // };
+
+// ------------ new changes----------------
+
+
+const handleZoomChange = (event) => {
+  const newZoom = parseInt(event.target.value);
+  setZoom(newZoom);
+  const newRadius = 10 - (newZoom / 11);
+  setRadius(newRadius);
+  updateCameraPosition(newRadius, polar, azimuth, camrotation);
+};
+
+const handleAzimuthChange = (event) => {
+  const angle = parseFloat(event.target.value) * Math.PI / 180;
+  setAzimuth(angle);
+  updateCameraPosition(radius, polar, angle, camrotation);
+};
+
+const handlePolarChange = (event) => {
+  const angle = parseFloat(event.target.value) * Math.PI / 180;
+  setPolar(angle);
+  updateCameraPosition(radius, angle, azimuth, camrotation);
+};
+
+const handelCameraRotation = (event) => {
+  const val = parseFloat(event.target.value);
+  setcamrotation(val);
+  updateCameraPosition(radius, polar, azimuth, val);
+};
+
+const updateCameraPosition = (r, p, a, rotation) => { 
+
+  const x = r * Math.sin(p) * Math.cos(a);
+  const z = r * Math.sin(p) * Math.sin(a);
+  const y = r * Math.cos(p);
+
+  cameraRef.current.position.set(x, y, z);
+  cameraRef.current.lookAt(0, 0, 0);
+  cameraRef.current.rotateZ(rotation);
+
+  cameraRef.current.updateMatrix();
+  cameraRef.current.updateMatrixWorld();
+};
+// ------------ new changes----------------
 
 
   const handelHDR = (event) => {
@@ -773,10 +905,39 @@ const ThreejsOLD = () => {
     }
   };
 
+  const handellightShadowOn = (val) => {
+    if (val) {
+      DlightRef.current.castShadow = true;
+    } else {
+      DlightRef.current.castShadow = false;
+    }
+    setLighShadowtOn(val);
+  };
+
+  const handelLightOn = (val) => {
+    if (val) {
+      colourLightRef.current.intensity = lightIntensity;
+    } else {
+      colourLightRef.current.intensity = 0;
+    }
+    setLightOn(val);
+  };
+
+  const handelLightIntensity = (val) => {
+    colourLightRef.current.intensity = val;
+    setLightIntensity(val);
+  }
+
+  const handelLightColour = (val) => {
+    const color = new THREE.Color(val);
+    colourLightRef.current.color = color;
+    setLightColor(val);
+  };
 
   return (
     <>
       <div style={{ display: "flex", alignContent: "space-between", height: "100vh", width: "140vh", padding: "10px" }}>
+
         <div style={{ padding: "10px", fontFamily: "Arial, sans-serif" }}>
           <label>
             Select Model :
@@ -788,6 +949,8 @@ const ThreejsOLD = () => {
               style={{ marginBottom: "10px" }}
             />
           </label>
+
+          <button style={{ marginBottom: "10px" }} onClick={() => setIsGlossy(!isGlossy)} >Matterial Change to {isGlossy ? "Matt" : "Glossy"}</button>
 
           <div style={{ marginBottom: "10px" }}>
             <label>
@@ -818,6 +981,90 @@ const ThreejsOLD = () => {
               style={{ marginLeft: "10px" }}
             />
           </div>
+
+          <button style={{ marginBottom: "10px" }} onClick={() => handelLightOn(!lightOn)} >Light {lightOn ? "On" : "Off"}</button>
+
+          <div style={{ marginBottom: "10px" }}>
+            <label style={{ display: "block", marginBottom: "5px" }}>
+              Light Intensity:
+              <input
+                type="range"
+                min="0"
+                max="10"
+                step="0.1"
+                disabled={!lightOn}
+                value={lightIntensity}
+                onChange={(e) => handelLightIntensity(e.target.value)}
+                style={{ marginLeft: "10px", verticalAlign: "middle" }}
+              />
+              {" " + lightIntensity}
+            </label>
+          </div>
+
+         
+
+          <div style={{ marginBottom: "10px" }}>
+            <label style={{ display: "block", marginBottom: "5px" }}>
+              Light Color:
+              <input
+                type="color"
+                disabled={!lightOn}
+                value={lightColor}
+                onChange={(e) => handelLightColour(e.target.value)}
+                style={{ marginLeft: "10px", verticalAlign: "middle" }}
+              />
+              {" " + lightColor}
+            </label>
+          </div>
+
+          <div style={{ marginBottom: "10px" }}>
+            <label style={{ display: "block", marginBottom: "5px" }}>
+             colour Light X:
+              <input
+                type="range"
+                min="-20"
+                max="20"
+                step="0.5"
+                value={lightPosition2.x}
+                disabled={!lightOn}
+                onChange={(e) => handleLightPositionChange2("x", e.target.value)}
+                style={{ marginLeft: "10px", verticalAlign: "middle" }}
+              />
+              {" " + lightPosition2.x}
+            </label>
+            <label style={{ display: "block", marginBottom: "5px" }}>
+             colour Light Y:
+              <input
+                type="range"
+                min="-10"
+                max="20"
+                step="0.5"
+                disabled={!lightOn}
+                value={lightPosition2.y}
+                onChange={(e) => handleLightPositionChange2("y", e.target.value)}
+                style={{ marginLeft: "10px", verticalAlign: "middle" }}
+              />
+              {" " + lightPosition2.y}
+            </label>
+            <label style={{ display: "block", marginBottom: "5px" }}>
+             colour Light Z:
+              <input
+                type="range"
+                min="-20"
+                max="20"
+                step="0.5"
+                disabled={!lightOn}
+                value={lightPosition2.z}
+                onChange={(e) => handleLightPositionChange2("z", e.target.value)}
+                style={{ marginLeft: "10px", verticalAlign: "middle" }}
+              />
+              {" " + lightPosition2.z}
+            </label>
+          </div>          
+
+          
+          <button style={{ margin: "10px" }} onClick={() => handellightShadowOn(!lightShadowOn)} >Light Shadow {lightShadowOn ? "On" : "Off"}</button>
+
           <div style={{ marginBottom: "10px" }}>
             <label style={{ display: "block", marginBottom: "5px" }}>
               Light X:
@@ -826,6 +1073,7 @@ const ThreejsOLD = () => {
                 min="-20"
                 max="20"
                 step="0.5"
+                disabled={!lightShadowOn}
                 value={lightPosition.x}
                 onChange={(e) => handleLightPositionChange("x", e.target.value)}
                 style={{ marginLeft: "10px", verticalAlign: "middle" }}
@@ -839,6 +1087,7 @@ const ThreejsOLD = () => {
                 min="-10"
                 max="20"
                 step="0.5"
+                disabled={!lightShadowOn}
                 value={lightPosition.y}
                 onChange={(e) => handleLightPositionChange("y", e.target.value)}
                 style={{ marginLeft: "10px", verticalAlign: "middle" }}
@@ -852,6 +1101,7 @@ const ThreejsOLD = () => {
                 min="-20"
                 max="20"
                 step="0.5"
+                disabled={!lightShadowOn}
                 value={lightPosition.z}
                 onChange={(e) => handleLightPositionChange("z", e.target.value)}
                 style={{ marginLeft: "10px", verticalAlign: "middle" }}
@@ -865,6 +1115,7 @@ const ThreejsOLD = () => {
                 min="0"
                 max="1"
                 step="0.01"
+                disabled={!lightShadowOn}
                 value={shadowOpacity}
                 onChange={(e) => handleShadowOpacityChange(e.target.value)}
                 style={{ marginLeft: "10px", verticalAlign: "middle" }}
@@ -878,6 +1129,7 @@ const ThreejsOLD = () => {
                 min="0"
                 max="10"
                 step="0.2"
+                disabled={!lightShadowOn}
                 value={shadowBlur}
                 onChange={(e) => handleShadowBlurChange(e.target.value)}
                 style={{ marginLeft: "10px", verticalAlign: "middle" }}
@@ -962,7 +1214,7 @@ const ThreejsOLD = () => {
             <label>Roughness</label>
             <input
               type="range"
-              min="0.01"
+              min="0"
               max="1"
               step={0.01}
               value={modelRoughness}
@@ -1091,6 +1343,19 @@ const ThreejsOLD = () => {
               disabled={OrthographicView}
               onChange={handlePolarChange}
             />
+          </div>
+
+          <div style={{ margin: '10px' }}>
+            <label>camera Rotation</label>
+            <input
+              type="range"
+              min="0"
+              max="6.28"
+              step='0.01'
+              value={camrotation}
+              onChange={(e) => handelCameraRotation(e)}
+            />
+            {" " + ((camrotation /6.28)*100).toFixed(1) + '%'}
           </div>
 
 
