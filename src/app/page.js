@@ -367,7 +367,6 @@ const ThreejsOLD = () => {
       }
       renderer.render(scene, camera);
     };
-    console.log("animate")
     animate();
 
     const handleResize = () => {
@@ -489,6 +488,7 @@ const ThreejsOLD = () => {
     }
   };
 
+
   const handleTextureChange = (event) => {
     if (selectedMesh) {
       const file = event?.target.files[0];
@@ -497,16 +497,16 @@ const ThreejsOLD = () => {
       reader.onload = (e) => {
         const texture = new THREE.TextureLoader().load(e.target.result);
         texture.flipY = false;
-
+  
         texture.colorSpace = THREE.SRGBColorSpace;
-        texture.encoding = THREE.sRGBEncoding;  // Ensure correct color encoding
-        texture.minFilter = THREE.NearestMipmapLinearFilter;
-        texture.generateMipmaps = true;  // Enable mipmap generation
-        texture.magFilter = THREE.LinearFilter;  // Use linear filter for magnification
+        texture.encoding = THREE.sRGBEncoding;              // Ensure correct color encoding
+        texture.minFilter = THREE.LinearMipmapLinearFilter; // Use trilinear filtering
+        texture.magFilter = THREE.LinearFilter;             // Use linear filter for magnification
+        texture.generateMipmaps = true;                     // Enable mipmap generation
         texture.wrapS = THREE.ClampToEdgeWrapping;
         texture.wrapT = THREE.ClampToEdgeWrapping;
-        texture.anisotropy = rendererRef.current.capabilities.getMaxAnisotropy();
-
+        texture.anisotropy = rendererRef.current.capabilities.getMaxAnisotropy(); // Enable anisotropic filtering
+  
         texture.mapping = THREE.UVMapping;
         selectedMesh.material.map = texture;
         selectedMesh.material.needsUpdate = true;
@@ -514,7 +514,6 @@ const ThreejsOLD = () => {
       reader.readAsDataURL(file);
     }
   };
-
 
   const handleDownloadImage = (format) => {
     const scene = sceneRef.current;
@@ -653,53 +652,6 @@ const ThreejsOLD = () => {
 
     }
   };
-
-  // const handleZoomChange = (event) => {
-  //   const newZoom = parseInt(event.target.value);
-  //   setZoom(newZoom);
-
-  //   // Convert zoom to radius (inverse relationship)
-  //   // Adjust this formula based on the scale of the zoom effect
-  //   const newRadius = 10 - (newZoom / 11);
-  //   setRadius(newRadius);
-
-  //   // Recalculate position using current angles and new radius
-  //   const x = newRadius * Math.sin(polar) * Math.cos(azimuth);
-  //   const z = newRadius * Math.sin(polar) * Math.sin(azimuth);
-  //   const y = newRadius * Math.cos(polar);
-
-  //   // Update camera position
-  //   cameraRef.current.position.set(x, y, z);
-  //   cameraRef.current.lookAt(0, 0, 0);
-  // };
-
-
-
-  // const handleAzimuthChange = (event) => {
-  //   const angle = parseFloat(event.target.value) * Math.PI / 180;
-  //   setAzimuth(angle);
-  //   // Calculate new position on sphere
-  //   const x = radius * Math.sin(polar) * Math.cos(angle);
-  //   const z = radius * Math.sin(polar) * Math.sin(angle);
-  //   const y = radius * Math.cos(polar);
-
-  //   cameraRef.current.position.set(x, y, z);
-  //   cameraRef.current.lookAt(0, 0, 0);
-  // };
-
-  // const handlePolarChange = (event) => {
-  //   const angle = parseFloat(event.target.value) * Math.PI / 180;
-  //   setPolar(angle);
-  //   // Calculate new position on sphere
-  //   const x = radius * Math.sin(angle) * Math.cos(azimuth);
-  //   const z = radius * Math.sin(angle) * Math.sin(azimuth);
-  //   const y = radius * Math.cos(angle);
-
-  //   cameraRef.current.position.set(x, y, z);
-  //   cameraRef.current.lookAt(0, 0, 0);
-  // };
-
-// ------------ new changes----------------
 
 
 const handleZoomChange = (event) => {
